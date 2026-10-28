@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F4F3EF">
+<title>Smart Helmet · Worker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --ground:#F4F3EF; --card:#FFFFFF; --ink:#16181D; --muted:#4B5160; --line:#DAD8D1;
+    --green:#15803D; --red:#B91C1C; --red-dark:#7F1D1D; --amber:#F59E0B;
+    --orange:#C2410C; --blue:#1D4ED8; --blue-bg:#DBEAFE; --blue-ink:#1E3A8A;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:'Hind Siliguri',system-ui,-apple-system,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+  button:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+  .app{max-width:440px;margin:0 auto;min-height:100dvh;position:relative}
+  .screen{display:none;min-height:100dvh;flex-direction:column;
+    padding:calc(18px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom))}
+  .screen.active{display:flex}
+  .gap{display:flex;flex-direction:column;gap:14px;flex:1}
+  .grow{flex:1}
+  .main{display:block}
+  .sub{display:block}
+
+  /* Header */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{width:44px;height:44px;border-radius:12px;background:var(--ink);display:flex;align-items:center;justify-content:center}
+  .brand .main{font-size:18px;font-weight:700;line-height:1.15}
+  .brand .sub{font-size:13px;color:var(--muted);line-height:1.15}
+  .lang{display:flex;background:#E4E2DC;border-radius:999px;padding:4px}
+  .lang button{height:38px;min-width:54px;border-radius:999px;font-size:14px;font-weight:600;padding:0 10px}
+  .lang button[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+  .chip{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;background:#fff;border:1px solid var(--line);
+    border-radius:999px;padding:6px 14px 6px 10px;font-size:14px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--green)}
+  .chip .main{font-weight:600}.chip .sub{color:var(--muted);font-size:13px}
+  .chip .main,.chip .sub{display:inline}
+
+  .status{background:var(--green);color:#fff;border-radius:22px;padding:20px;display:flex;align-items:center;gap:16px}
+  .status .ring{width:64px;height:64px;flex-shrink:0;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center}
+  .status .main{font-size:30px;font-weight:700;line-height:1.1}
+  .status .sub{font-size:17px;font-weight:500}
+  .status .note{font-size:13px;opacity:.92;margin-top:4px}
+
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .tile{background:var(--card);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:6px}
+  .tile .label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+  .tile .val{font-size:30px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+  .tile .val.word{font-size:24px;line-height:1.1}
+  .tile .sub{font-size:12px;color:var(--muted)}
+  .tile.warn{outline:3px solid var(--amber)}
+
+  .tip{display:flex;align-items:center;gap:12px;border-radius:16px;padding:12px 14px;line-height:1.25}
+  .tip .main{font-size:15px;font-weight:600}.tip .sub{font-size:13px}
+  .tip.blue{background:var(--blue-bg);color:var(--blue-ink)}
+  .tip.redbg{background:#FEE2E2;color:var(--red-dark)}
+  .tip.dark{background:rgba(0,0,0,.22);color:#fff}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:14px;border-radius:22px;text-decoration:none;width:100%}
+  .btn .txt{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;text-align:left}
+  .btn:active{transform:translateY(3px)}
+  .sos{height:92px;background:var(--red);color:#fff;box-shadow:0 6px 0 var(--red-dark)}
+  .sos .main{font-size:26px;font-weight:700}.sos .sub{font-size:15px;font-weight:500}
+  .outline{height:56px;border:2px solid currentColor;border-radius:18px}
+  .outline .main{font-size:17px;font-weight:600}.outline .sub{font-size:13px;opacity:.85}
+  .outline .main,.outline .sub{display:inline}
+
+  .demo{margin-top:6px;border-top:1px dashed var(--line);padding-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .demo span{font-size:12px;color:var(--muted);width:100%}
+  .demo button{height:40px;padding:0 14px;border-radius:12px;background:#E4E2DC;font-size:13px;font-weight:600}
+
+  /* Fall */
+  #fall{background:var(--red);color:#fff}
+  .pill{display:flex;align-items:center;gap:8px;align-self:center;background:rgba(0,0,0,.22);border-radius:999px;padding:6px 16px;font-size:14px;font-weight:600}
+  .pill .main,.pill .sub{display:inline}
+  .center{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
+  .q .main{font-size:34px;font-weight:700;line-height:1.15}.q .sub{font-size:20px;font-weight:500}
+  .count{position:relative;width:190px;height:190px;align-self:center}
+  .count svg{position:absolute;inset:0;transform:rotate(-90deg)}
+  .count .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .count .n{font-size:84px;font-weight:700}
+  .count small{font-size:14px;font-weight:500;margin-top:4px}
+  .ok{height:96px;background:#fff;color:#14532D;box-shadow:0 6px 0 rgba(0,0,0,.25)}
+  .ok .main{font-size:28px;font-weight:700}.ok .sub{font-size:16px;font-weight:500}
+  .white-outline{height:64px;border:2px solid #fff;border-radius:20px}
+  .white-outline .main{font-size:20px;font-weight:700}.white-outline .sub{font-size:14px}
+  .white-outline .main,.white-outline .sub{display:inline}
+
+  /* Heat */
+  #heat{background:#FFF7ED;padding:0}
+  .heat-top{background:var(--amber);padding:calc(26px + env(safe-area-inset-top)) 20px 22px;border-radius:0 0 28px 28px;display:flex;flex-direction:column;gap:14px}
+  .heat-top .title .main{font-size:34px;font-weight:700;line-height:1.1}
+  .heat-top .title .sub{font-size:19px;font-weight:600}
+  .reading{display:flex;align-items:flex-end;justify-content:space-between;background:rgba(255,255,255,.55);border-radius:18px;padding:12px 16px;gap:10px}
+  .reading .big{font-size:40px;font-weight:700;line-height:1}
+  .heat-body{padding:18px 20px calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;flex:1}
+  .h2{font-size:18px;font-weight:700}
+  .step{display:flex;align-items:center;gap:14px;background:#fff;border-radius:18px;padding:14px}
+  .step .k{width:44px;height:44px;flex-shrink:0;border-radius:50%;background:var(--ink);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .step .main{font-size:20px;font-weight:700;line-height:1.2}.step .sub{font-size:14px;color:var(--muted)}
+  .rest{height:76px;background:var(--ink);color:#fff;box-shadow:0 5px 0 #000}
+  .rest .main{font-size:22px;font-weight:700}.rest .sub{font-size:14px}
+
+  /* Help sent */
+  #help{background:var(--ink);color:#fff}
+  .help-icon{width:120px;height:120px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;align-self:center;margin-top:40px}
+  .help-txt .main{font-size:32px;font-weight:700;line-height:1.15}.help-txt .sub{font-size:19px}
+  .help-note{font-size:15px;opacity:.9}
+  .light-btn{height:64px;background:#fff;color:var(--ink);border-radius:20px}
+  .light-btn .main{font-size:20px;font-weight:700}.light-btn .sub{font-size:14px}
+  .light-btn .main,.light-btn .sub{display:inline}
+
+  .foot{font-size:11px;color:var(--muted);text-align:center;margin-top:10px}
+  #fall .foot,#help .foot{color:rgba(255,255,255,.8)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ HOME ============ -->
+  <section class="screen active" id="home" aria-label="Home">
+    <div class="gap">
+      <div class="top">
+        <div class="brand">
+          <div class="logo">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18"/><path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 9V5"/><path d="M9 6.5v3"/><path d="M15 6.5v3"/></svg>
+          </div>
+          <div><span class="main" data-m="app"></span><span class="sub" data-s="app"></span></div>
+        </div>
+        <div class="lang" role="group" aria-label="Language">
+          <button type="button" data-lang="bn" aria-pressed="true">বাংলা</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+
+      <div class="chip"><span class="dot" aria-hidden="true"></span><span class="main" data-m="connected"></span><span class="sub">·&nbsp;<span data-s="connected"></span></span></div>
+
+      <div class="status" role="status">
+        <div class="ring"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <div>
+          <span class="main" data-m="safe"></span>
+          <span class="sub" data-s="safe"></span>
+          <span class="note"><span data-m="normal"></span> · <span data-s="normal"></span></span>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="tile">
+          <div class="label"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"/></svg><span data-m="air"></span></div>
+          <span class="val" id="vAir">--</span>
+          <span class="sub" data-s="air"></span>
+        </div>
+        <div class="tile">
+          <div class="label"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg><span data-m="hum"></span></div>
+          <span class="val" id="vHum">--</span>
+          <span class="sub" data-s="hum"></span>
+        </div>
+        <div class="tile" id="tSkin">
+          <div class="label"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg><span data-m="skin"></span></div>
+          <span class="val" id="vSkin">--</span>
+          <span class="sub" data-s="skin"></span>
+        </div>
+        <div class="tile">
+          <div class="label"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span data-m="move"></span></div>
+          <span class="val word" data-m="moveOk"></span>
+          <span class="sub"><span data-s="move"></span> · <span data-s="moveOk"></span></span>
+        </div>
+      </div>
+
+      <div class="tip blue">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l-1.5 17a2 2 0 0 1-2 1.8h-5a2 2 0 0 1-2-1.8z"/><path d="M6.5 9h11"/></svg>
+        <div><span class="main" data-m="water"></span><span class="sub" data-s="water"></span></div>
+      </div>
+
+      <div class="grow"></div>
+
+      <button type="button" class="btn sos" id="btnSos">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>
+        <span class="txt"><span class="main" data-m="sos"></span><span class="sub" data-s="sos"></span></span>
+      </button>
+
+      <a class="btn outline" id="callLink" href="#">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+        <span><span class="main" data-m="call"></span> <span class="sub">· <span data-s="call"></span></span></span>
+      </a>
+
+      <div class="demo">
+        <span data-m="demo"></span>
+        <button type="button" id="demoFall" data-m="demoFall"></button>
+        <button type="button" id="demoHeat" data-m="demoHeat"></button>
+      </div>
+      <p class="foot" data-m="foot"></p>
+    </div>
+  </section>
+
+  <!-- ============ FALL CHECK ============ -->
+  <section class="screen" id="fall" aria-label="Fall check" role="alertdialog">
+    <div class="gap" style="gap:18px">
+      <div class="pill">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>
+        <span class="main" data-m="emerg"></span><span class="sub">·&nbsp;<span data-s="emerg"></span></span>
+      </div>
+
+      <div class="center q" style="margin-top:6px"><span class="main" data-m="fallQ"></span><span class="sub" data-s="fallQ"></span></div>
+
+      <div class="count">
+        <svg viewBox="0 0 190 190" width="190" height="190" aria-hidden="true">
+          <circle cx="95" cy="95" r="85" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="10"/>
+          <circle id="ring" cx="95" cy="95" r="85" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round"
+                  stroke-dasharray="534.07" stroke-dashoffset="0" style="transition:stroke-dashoffset 1s linear"/>
+        </svg>
+        <div class="num" aria-live="assertive"><span class="n" id="countNum">৫</span><small><span data-m="sec"></span> · <span data-s="sec"></span></small></div>
+      </div>
+
+      <div class="center"><span style="font-size:17px;font-weight:600" data-m="willAlert"></span><span style="font-size:14px" data-s="willAlert"></span></div>
+
+      <div class="grow"></div>
+
+      <button type="button" class="btn ok" id="btnOk">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+        <span class="txt"><span class="main" data-m="imOk"></span><span class="sub" data-s="imOk"></span></span>
+      </button>
+
+      <button type="button" class="btn white-outline" id="btnSendHelp">
+        <span><span class="main" data-m="sendNow"></span> <span class="sub">· <span data-s="sendNow"></span></span></span>
+      </button>
+
+      <div class="tip dark">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18"/><path d="M4 17a8 8 0 0 1 16 0"/><circle cx="12" cy="12" r="2"/></svg>
+        <div><span class="main" data-m="holdBtn"></span><span class="sub" data-s="holdBtn"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HEAT ALERT ============ -->
+  <section class="screen" id="heat" aria-label="Heat alert" role="alertdialog">
+    <div class="heat-top">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:60px;height:60px;flex-shrink:0;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"/><path d="M12 9v6"/></svg>
+        </div>
+        <div class="title"><span class="main" data-m="tooHot"></span><span class="sub" data-s="tooHot"></span></div>
+      </div>
+      <div class="reading">
+        <div style="line-height:1.2">
+          <span style="display:block;font-size:14px;font-weight:600"><span data-m="skin"></span> · <span data-s="skin"></span></span>
+          <span style="display:block;font-size:13px" data-m="over40"></span>
+          <span style="display:block;font-size:12px" data-s="over40"></span>
+        </div>
+        <span class="big" id="vHeat">40.6°</span>
+      </div>
+    </div>
+
+    <div class="heat-body">
+      <span class="h2"><span data-m="doNow"></span> · <span data-s="doNow"></span></span>
+      <div class="step"><span class="k">১</span><div><span class="main" data-m="s1"></span><span class="sub" data-s="s1"></span></div></div>
+      <div class="step"><span class="k">২</span><div><span class="main" data-m="s2"></span><span class="sub" data-s="s2"></span></div></div>
+      <div class="step"><span class="k">৩</span><div><span class="main" data-m="s3"></span><span class="sub" data-s="s3"></span></div></div>
+
+      <div class="tip redbg">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>
+        <div><span class="main" data-m="dizzy"></span><span class="sub" data-s="dizzy"></span></div>
+      </div>
+
+      <div class="grow"></div>
+
+      <button type="button" class="btn rest" id="btnRest">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+        <span class="txt"><span class="main" data-m="resting"></span><span class="sub" data-s="resting"></span></span>
+      </button>
+      <button type="button" class="btn outline" id="btnTell" style="color:var(--red)">
+        <span><span class="main" data-m="tell"></span> <span class="sub">· <span data-s="tell"></span></span></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ HELP SENT ============ -->
+  <section class="screen" id="help" aria-label="Help sent" role="alertdialog">
+    <div class="gap" style="gap:18px">
+      <div class="help-icon"><svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <div class="center help-txt"><span class="main" data-m="helpSent"></span><span class="sub" data-s="helpSent"></span></div>
+      <div class="center help-note"><span data-m="stay"></span><span data-s="stay" style="font-size:13px"></span></div>
+      <div class="grow"></div>
+      <a class="btn sos" id="callLink2" href="#">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+        <span class="txt"><span class="main" data-m="call"></span><span class="sub" data-s="call"></span></span>
+      </a>
+      <button type="button" class="btn light-btn" id="btnBack"><span><span class="main" data-m="back"></span> <span class="sub">· <span data-s="back"></span></span></span></button>
+      <p class="foot" data-m="foot"></p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ===== Settings you can change ===== */
+const CONFIG = {
+  supervisorPhone: "01113148637",   // number dialled by "Call supervisor"
+  countdownSeconds: 5,              // fall-check countdown
+  updateEveryMs: 2000               // how often the dummy readings change
+};
+
+/* ===== Text: [Bangla, English] ===== */
+const T = {
+  app:["স্মার্ট হেলমেট","Smart Helmet"],
+  connected:["হেলমেট সংযুক্ত","Helmet connected"],
+  safe:["আপনি নিরাপদ","You are safe"],
+  normal:["সব রিডিং স্বাভাবিক","All readings normal"],
+  air:["বাতাসের তাপ","Air temperature"],
+  hum:["আর্দ্রতা","Humidity"],
+  skin:["ত্বকের তাপ","Skin temperature"],
+  move:["নড়াচড়া","Movement"],
+  moveOk:["স্বাভাবিক","Normal"],
+  water:["প্রতি ২০ মিনিটে পানি পান করুন","Drink water every 20 minutes"],
+  sos:["সাহায্য দরকার","I need help · SOS"],
+  call:["সুপারভাইজারকে কল করুন","Call supervisor"],
+  demo:["ডেমো (পরীক্ষার জন্য)","Demo only (for testing)"],
+  demoFall:["পড়ে যাওয়া দেখান","Show fall"],
+  demoHeat:["গরম সতর্কতা দেখান","Show heat alert"],
+  foot:["ডেমো ডেটা · এটি চিকিৎসা যন্ত্র নয়","Demo data · Not a medical device"],
+  emerg:["জরুরি সতর্কতা","Emergency check"],
+  fallQ:["আপনি কি পড়ে গেছেন?","Did you fall?"],
+  sec:["সেকেন্ড","seconds"],
+  willAlert:["উত্তর না দিলে অফিসকে জানানো হবে","If you don't answer, the office will be alerted"],
+  imOk:["আমি ঠিক আছি","I'm OK"],
+  sendNow:["এখনই সাহায্য পাঠান","Send help now"],
+  holdBtn:["অথবা হেলমেটের বোতাম ২ সেকেন্ড চেপে ধরুন","Or hold the helmet button for 2 seconds"],
+  tooHot:["খুব গরম!","Too hot!"],
+  over40:["৩ মিনিট ধরে ৪০°C এর বেশি","Above 40°C for 3 minutes"],
+  doNow:["এখনই করুন","Do this now"],
+  s1:["কাজ থামান","Stop working"],
+  s2:["ছায়ায় গিয়ে বসুন","Sit down in the shade"],
+  s3:["ঠান্ডা পানি পান করুন","Drink cool water"],
+  dizzy:["মাথা ঘুরলে বা বমি লাগলে সাহায্য চান","Dizzy or feel sick? Ask for help"],
+  resting:["আমি বিশ্রাম নিচ্ছি","I'm resting now"],
+  tell:["সুপারভাইজারকে জানান","Tell supervisor"],
+  helpSent:["সাহায্য আসছে","Help is on the way"],
+  stay:["যেখানে আছেন সেখানে থাকুন। অফিসকে জানানো হয়েছে (ডেমো)।","Stay where you are. The office has been told (demo)."],
+  back:["হোমে ফিরে যান","Back to home"]
+};
+
+/* ===== Language ===== */
+let lang = "bn";
+try { lang = localStorage.getItem("helmetLang") || "bn"; } catch(e) {}
+
+function applyLang(){
+  const m = lang === "bn" ? 0 : 1;   // main language index
+  const s = 1 - m;                   // secondary language index
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-m]").forEach(el => { const t = T[el.dataset.m]; if (t) el.textContent = t[m]; });
+  document.querySelectorAll("[data-s]").forEach(el => { const t = T[el.dataset.s]; if (t) el.textContent = t[s]; });
+  document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
+  render();
+}
+document.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => {
+  lang = b.dataset.lang;
+  try { localStorage.setItem("helmetLang", lang); } catch(e) {}
+  applyLang();
+}));
+
+/* Bangla digits */
+const BN = "০১২৩৪৫৬৭৮৯";
+const num = v => lang === "bn" ? String(v).replace(/\d/g, d => BN[d]) : String(v);
+
+/* ===== Screens ===== */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+  window.scrollTo(0,0);
+  if (id !== "fall") stopCountdown();
+}
+
+/* ===== Dummy sensor data ===== */
+const data = { air:32.0, hum:68, skin:35.4 };
+const drift = (v, step, min, max) => Math.min(max, Math.max(min, v + (Math.random()*2-1)*step));
+
+function render(){
+  document.getElementById("vAir").textContent  = num(data.air.toFixed(1)) + "°C";
+  document.getElementById("vHum").textContent  = num(Math.round(data.hum)) + "%";
+  document.getElementById("vSkin").textContent = num(data.skin.toFixed(1)) + "°C";
+  document.getElementById("vHeat").textContent = num("40.6") + "°";
+}
+setInterval(() => {
+  data.air  = drift(data.air, 0.3, 30, 35);
+  data.hum  = drift(data.hum, 1.5, 58, 78);
+  data.skin = drift(data.skin, 0.2, 34.2, 36.8);
+  render();
+}, CONFIG.updateEveryMs);
+
+/* ===== Fall countdown ===== */
+const C = 2 * Math.PI * 85;
+let timer = null, left = 0;
+function startCountdown(){
+  stopCountdown();
+  left = CONFIG.countdownSeconds;
+  const ring = document.getElementById("ring");
+  ring.style.transition = "none"; ring.style.strokeDashoffset = 0;
+  document.getElementById("countNum").textContent = num(left);
+  if (navigator.vibrate) navigator.vibrate([300,150,300]);
+  requestAnimationFrame(() => { ring.style.transition = "stroke-dashoffset 1s linear"; });
+  timer = setInterval(() => {
+    left--;
+    document.getElementById("countNum").textContent = num(Math.max(left,0));
+    ring.style.strokeDashoffset = C * (1 - left / CONFIG.countdownSeconds);
+    if (left <= 0) { stopCountdown(); show("help"); }
+  }, 1000);
+}
+function stopCountdown(){ if (timer) clearInterval(timer); timer = null; }
+
+/* ===== Buttons ===== */
+const tel = "tel:" + CONFIG.supervisorPhone;
+document.getElementById("callLink").href  = tel;
+document.getElementById("callLink2").href = tel;
+
+document.getElementById("demoFall").onclick   = () => { show("fall"); startCountdown(); };
+document.getElementById("demoHeat").onclick   = () => { if (navigator.vibrate) navigator.vibrate(400); show("heat"); };
+document.getElementById("btnSos").onclick     = () => show("help");
+document.getElementById("btnOk").onclick      = () => show("home");
+document.getElementById("btnSendHelp").onclick= () => show("help");
+document.getElementById("btnRest").onclick    = () => show("home");
+document.getElementById("btnTell").onclick    = () => show("help");
+document.getElementById("btnBack").onclick    = () => show("home");
+
+applyLang();
+</script>
+</body>
+</html>
