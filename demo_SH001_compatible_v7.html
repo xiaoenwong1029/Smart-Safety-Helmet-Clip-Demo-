@@ -1,0 +1,2075 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Helmet · Live Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --ground:#F4F3EF; --card:#FFFFFF; --ink:#16181D; --muted:#4B5160; --line:#DAD8D1; --soft:#E4E2DC;
+    --green:#15803D; --green-bg:#DCFCE7; --green-ink:#14532D;
+    --red:#B91C1C; --red-dark:#7F1D1D; --red-bg:#FEE2E2;
+    --amber:#F59E0B; --amber-bg:#FEF3C7; --amber-ink:#92400E;
+    --blue:#1D4ED8; --blue-bg:#DBEAFE; --blue-ink:#1E3A8A;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{margin:0;height:100%}
+  body{background:#E2E0DA;color:var(--ink);font-family:'Hind Siliguri',system-ui,-apple-system,sans-serif;overflow:hidden}
+  button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+  button:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+  .main{display:block}.sub{display:block}
+
+  /* ===== Presenter bar ===== */
+  .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 18px;background:#fff;border-bottom:1px solid var(--line)}
+  .bar-title{font-size:16px;font-weight:700;margin-right:6px}
+  .live{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:600;background:var(--soft)}
+  .live i{width:9px;height:9px;border-radius:50%;background:#9CA3AF}
+  .live.on{background:var(--green-bg);color:var(--green-ink)} .live.on i{background:var(--green)}
+  .bar .spacer{flex:1}
+  .trig{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:12px;background:var(--soft);font-size:14px;font-weight:600}
+  .trig svg{flex-shrink:0}
+  .trig.ghost{background:none;border:1.5px solid var(--line)}
+  .bar-hint{font-size:12px;color:var(--muted)}
+
+  /* ===== Stage ===== */
+  .stage{display:flex;justify-content:center;align-items:flex-start;gap:40px;padding:18px 24px 24px;width:max-content;margin:0 auto}
+  .col{display:flex;flex-direction:column;gap:10px}
+  .col-head{height:40px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .who{font-size:15px;font-weight:700}
+  .who small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+  .seg{display:flex;background:var(--soft);border-radius:999px;padding:4px}
+  .seg button{height:32px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600}
+  .seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+  .phone{width:390px;height:800px;border-radius:42px;background:var(--ground);box-shadow:0 0 0 10px #16181D,0 20px 50px rgba(0,0,0,.18);
+    overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .desk{width:620px;height:800px;border-radius:20px;background:var(--ground);box-shadow:0 0 0 8px #16181D,0 20px 50px rgba(0,0,0,.18);
+    overflow:hidden;position:relative;display:flex;flex-direction:column}
+
+  /* ===== Worker app (same look as the worker page) ===== */
+  .w .screen{display:none;position:absolute;inset:0;flex-direction:column;overflow-y:auto;padding:18px}
+  .w .screen.active{display:flex}
+  .gap{display:flex;flex-direction:column;gap:14px;flex:1}
+  .grow{flex:1}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{width:44px;height:44px;border-radius:12px;background:var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .brand .main{font-size:18px;font-weight:700;line-height:1.15}
+  .brand .sub{font-size:13px;color:var(--muted);line-height:1.15}
+  .lang{display:flex;background:var(--soft);border-radius:999px;padding:4px}
+  .lang button{height:36px;min-width:50px;border-radius:999px;font-size:14px;font-weight:600;padding:0 10px}
+  .lang button[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+  .conn{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:10px 10px 10px 14px}
+  .conn-state{display:flex;align-items:center;gap:10px;min-width:0}
+  .dot{width:12px;height:12px;border-radius:50%;background:var(--green);flex-shrink:0}
+  .conn .main{font-size:15px;font-weight:600;line-height:1.2}.conn .sub{color:var(--muted);font-size:12px;line-height:1.2}
+  .conn-btn{height:44px;padding:0 14px;border-radius:12px;font-size:14px;font-weight:600;flex-shrink:0;border:2px solid var(--red);color:var(--red);background:#fff}
+  .w.off .conn-btn{background:var(--ink);border-color:var(--ink);color:#fff}
+  .w.busy .conn-btn{opacity:.6;pointer-events:none}
+  .w.off .dot{background:#9CA3AF}
+  .w.busy .dot{background:var(--amber);animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.3}}
+
+  .status{background:var(--green);color:#fff;border-radius:22px;padding:20px;display:flex;align-items:center;gap:16px}
+  .status .ring{width:64px;height:64px;flex-shrink:0;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center}
+  .status .main{font-size:30px;font-weight:700;line-height:1.1}
+  .status .sub{font-size:17px;font-weight:500}
+  .status .note{font-size:13px;opacity:.92;margin-top:4px;display:block}
+  .w.off .status{background:#6B7280}
+
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .tile{background:var(--card);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:6px}
+  .tile .label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+  .tile .val{font-size:30px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+  .tile .sub{font-size:12px;color:var(--muted)}
+  .tile.wide{grid-column:1 / -1}
+  .tile.warn{outline:3px solid var(--amber)}
+  .w.off .tile .val{color:#9CA3AF}
+
+  .tip{display:flex;align-items:center;gap:12px;border-radius:16px;padding:12px 14px;line-height:1.25}
+  .tip .main{font-size:15px;font-weight:600}.tip .sub{font-size:13px}
+  .tip.blue{background:var(--blue-bg);color:var(--blue-ink)}
+  .tip.redbg{background:var(--red-bg);color:var(--red-dark)}
+  .tip.greenbg{background:var(--green-bg);color:var(--green-ink)}
+  .tip.dark{background:rgba(0,0,0,.22);color:#fff}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:14px;border-radius:22px;text-decoration:none;width:100%;flex-shrink:0}
+  .btn .txt{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;text-align:left}
+  .btn:active{transform:translateY(3px)}
+  .sos{height:92px;background:var(--red);color:#fff;box-shadow:0 6px 0 var(--red-dark)}
+  .sos .main{font-size:26px;font-weight:700}.sos .sub{font-size:15px;font-weight:500}
+  .outline{height:56px;border:2px solid currentColor;border-radius:18px}
+  .outline .main{font-size:17px;font-weight:600}.outline .sub{font-size:13px;opacity:.85}
+  .outline .main,.outline .sub{display:inline}
+
+  #wFall{background:var(--red);color:#fff}
+  .pill{display:flex;align-items:center;gap:8px;align-self:center;background:rgba(0,0,0,.22);border-radius:999px;padding:6px 16px;font-size:14px;font-weight:600}
+  .pill .main,.pill .sub{display:inline}
+  .center{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
+  .q .main{font-size:34px;font-weight:700;line-height:1.15}.q .sub{font-size:20px;font-weight:500}
+  .count{position:relative;width:190px;height:190px;align-self:center;flex-shrink:0}
+  .count svg{position:absolute;inset:0;transform:rotate(-90deg)}
+  .count .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .count .n{font-size:84px;font-weight:700}
+  .count small{font-size:14px;font-weight:500;margin-top:4px}
+  .white-outline{height:64px;border:2px solid #fff;border-radius:20px}
+  .white-outline .main{font-size:20px;font-weight:700}.white-outline .sub{font-size:14px}
+  .white-outline .main,.white-outline .sub{display:inline}
+
+  #wHeat{background:#FFF7ED;padding:0}
+  .heat-top{background:var(--amber);padding:26px 20px 22px;border-radius:0 0 28px 28px;display:flex;flex-direction:column;gap:14px}
+  .heat-top .title .main{font-size:34px;font-weight:700;line-height:1.1}
+  .heat-top .title .sub{font-size:19px;font-weight:600}
+  .reading{display:flex;align-items:flex-end;justify-content:space-between;background:rgba(255,255,255,.55);border-radius:18px;padding:12px 16px;gap:10px}
+  .reading .big{font-size:40px;font-weight:700;line-height:1;white-space:nowrap}
+  .reading .temp{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0}
+  .reading .sim{font-size:12px;font-weight:600;margin-top:4px}
+  .heat-body{padding:16px 20px 20px;display:flex;flex-direction:column;gap:10px;flex:1}
+  .h2{font-size:18px;font-weight:700}
+  .step{display:flex;align-items:center;gap:14px;background:#fff;border-radius:18px;padding:12px 14px}
+  .step .k{width:42px;height:42px;flex-shrink:0;border-radius:50%;background:var(--ink);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .step .main{font-size:19px;font-weight:700;line-height:1.2}.step .sub{font-size:14px;color:var(--muted)}
+  .rest{height:72px;background:var(--ink);color:#fff;box-shadow:0 5px 0 #000}
+  .rest .main{font-size:22px;font-weight:700}.rest .sub{font-size:14px}
+
+  #wHelp{background:var(--ink);color:#fff}
+  .help-icon{width:120px;height:120px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;align-self:center;margin-top:40px;flex-shrink:0;transition:background .3s}
+  #wHelp.coming .help-icon{background:var(--green)}
+  .help-txt .main{font-size:32px;font-weight:700;line-height:1.15}.help-txt .sub{font-size:19px}
+  .help-note{font-size:15px;opacity:.9}
+  .light-btn{height:64px;background:#fff;color:var(--ink);border-radius:20px}
+  .light-btn .main{font-size:20px;font-weight:700}.light-btn .sub{font-size:14px}
+  .light-btn .main,.light-btn .sub{display:inline}
+  .foot{font-size:11px;color:var(--muted);text-align:center;margin:6px 0 0}
+  #wHelp .foot{color:rgba(255,255,255,.8)}
+
+  /* ===== Supervisor + EHS (same look as the worker app) ===== */
+  .s-scroll{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+  .bell{position:relative;width:48px;height:48px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .bell b{position:absolute;top:4px;right:4px;min-width:20px;height:20px;border-radius:10px;background:var(--red);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0 5px}
+  .crew{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:10px 14px}
+  .crew .main{font-size:15px;font-weight:600;line-height:1.2}.crew .sub{font-size:12px;color:var(--muted);line-height:1.2}
+  .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .stat{background:#fff;border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+  .stat b{font-size:28px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+  .stat span{font-size:12px;font-weight:600;color:var(--muted);line-height:1.2}
+  .stat.hot{background:var(--red-bg)} .stat.hot b{color:var(--red)} .stat.hot span{color:var(--red-dark)}
+  .stat.warm{background:var(--amber-bg)} .stat.warm b,.stat.warm span{color:var(--amber-ink)}
+  .stat.good b{color:var(--green)}
+  .sec{font-size:13px;font-weight:700;color:var(--muted);margin:2px 2px -4px}
+  .clear{background:#fff;border-radius:18px;padding:22px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+  .clear .ok{width:56px;height:56px;border-radius:50%;background:var(--green-bg);display:flex;align-items:center;justify-content:center}
+  .clear .main{font-size:18px;font-weight:700}.clear .sub{font-size:13px;color:var(--muted)}
+
+  .acard{background:#fff;border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;outline:3px solid var(--red)}
+  .acard.amber{outline-color:var(--amber)}
+  .acard.pending{outline:3px dashed var(--red)}
+  .acard.ack{outline:2px solid var(--line)}
+  .acard.flash{animation:flash .9s ease 3}
+  @keyframes flash{50%{box-shadow:0 0 0 8px rgba(185,28,28,.25)}}
+  .arow{display:flex;align-items:center;gap:12px}
+  .aic{width:46px;height:46px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .acard.heat .aic{background:var(--amber)}
+  .att{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
+  .att b{font-size:20px;font-weight:700;color:var(--red)}
+  .acard.amber .att b{color:var(--amber-ink)}
+  .acard.ack .att b{color:var(--ink)}
+  .att span{font-size:14px;color:var(--muted)}
+  .tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700;vertical-align:1px}
+  .tag.live{background:var(--ink);color:#fff}
+  .tag.sim{background:var(--soft);color:var(--muted)}
+  .chip{font-size:12px;font-weight:700;border-radius:999px;padding:4px 10px;white-space:nowrap;align-self:flex-start}
+  .chip.new{background:var(--red-bg);color:var(--red-dark)}
+  .chip.ack{background:var(--green-bg);color:var(--green-ink)}
+  .chip.chk{background:var(--amber-bg);color:var(--amber-ink)}
+  .ameta{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--ink)}
+  .ameta div{display:flex;align-items:center;gap:8px}
+  .ameta svg{flex-shrink:0}
+  .note{border-radius:14px;padding:10px 12px;font-size:14px;font-weight:600;line-height:1.25}
+  .note.warn{background:var(--amber-bg);color:var(--amber-ink)}
+  .note.esc{background:var(--red-bg);color:var(--red-dark)}
+  .note.ok{background:var(--green-bg);color:var(--green-ink)}
+  .acts{display:flex;gap:8px}
+  .sbtn{flex:1;height:52px;border-radius:16px;font-size:15px;white-space:nowrap;padding:0 10px;font-weight:700;border:2px solid var(--ink);background:#fff;color:var(--ink);display:flex;align-items:center;justify-content:center;text-decoration:none}
+  .sbtn.primary{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 4px 0 var(--red-dark)}
+  .sbtn.dark{background:var(--ink);color:#fff;box-shadow:0 4px 0 #000}
+  .sbtn.icon{flex:none;width:52px}
+  .sbtn:active{transform:translateY(2px)}
+
+  .floor{position:relative;height:124px;border-radius:14px;background:#F8F7F3;border:1px solid var(--line);overflow:hidden}
+  .floor.big{height:340px}
+  .room{position:absolute;border:2px solid #CFCCC3;border-radius:6px;font-size:11px;font-weight:600;color:var(--muted);padding:3px 6px}
+  .pin{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#6B7280;border:2.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .pin.ok{background:var(--green)}
+  .pin.alert{background:var(--red);width:22px;height:22px;margin:-11px 0 0 -11px;animation:pulse 1.4s infinite}
+  .pin.warm{background:var(--amber);width:22px;height:22px;margin:-11px 0 0 -11px;animation:pulsea 1.4s infinite}
+  .pin.off{background:#9CA3AF}
+  .pin-label{position:absolute;transform:translate(-50%,12px);font-size:11px;font-weight:700;background:var(--ink);color:#fff;border-radius:6px;padding:1px 6px;white-space:nowrap}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(185,28,28,.55)}100%{box-shadow:0 0 0 16px rgba(185,28,28,0)}}
+  @keyframes pulsea{0%{box-shadow:0 0 0 0 rgba(245,158,11,.6)}100%{box-shadow:0 0 0 16px rgba(245,158,11,0)}}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+  .wk{background:#fff;border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px}
+  .av{width:44px;height:44px;border-radius:50%;background:var(--soft);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .wk .att b{font-size:16px;color:var(--ink)}
+  .wk .att span{font-size:12px}
+  .wk .temp{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;line-height:1}
+  .wk .temp small{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:3px}
+  .st{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px}
+  .st.ok{background:var(--green-bg);color:var(--green-ink)} .st.alert{background:var(--red-bg);color:var(--red-dark)}
+  .st.warm{background:var(--amber-bg);color:var(--amber-ink)} .st.off{background:var(--soft);color:var(--muted)}
+
+  .log{background:#fff;border-radius:18px;padding:4px 14px}
+  .log div{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;line-height:1.3}
+  .log div:last-child{border-bottom:none}
+  .log time{color:var(--muted);font-variant-numeric:tabular-nums;flex-shrink:0;width:44px;font-weight:600}
+  .log .r{color:var(--red)} .log .a{color:var(--amber-ink)} .log .g{color:var(--green-ink)}
+
+  .nav{display:flex;background:#fff;border-top:1px solid var(--line);padding:4px 6px 12px;flex-shrink:0}
+  .nav button{flex:1;height:58px;font-size:12px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;border-radius:14px}
+  .nav button[aria-current="page"]{color:var(--ink);background:var(--soft)}
+  .nav .nb{position:absolute;top:4px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+  .scrim{position:absolute;inset:0;background:rgba(22,24,29,.45);display:flex;align-items:flex-end;z-index:5}
+  .sheet .sbtn{flex:none;height:52px}
+  .sheet{background:var(--ground);width:100%;max-height:88%;overflow-y:auto;border-radius:26px 26px 0 0;padding:14px 18px 22px;display:flex;flex-direction:column;gap:12px}
+  .grab{width:44px;height:5px;border-radius:3px;background:#C9C6BD;align-self:center}
+  .kv{background:#fff;border-radius:18px;padding:6px 14px}
+  .kv div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .kv div:last-child{border-bottom:none}
+  .kv dt{color:var(--muted);font-weight:600} .kv dd{margin:0;text-align:right;font-weight:600}
+
+  .bars{background:#fff;border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  .brow{display:grid;grid-template-columns:150px minmax(0,1fr) 62px;align-items:center;gap:10px;font-size:13px}
+  .brow .nm{font-weight:600;line-height:1.15}
+  .brow .nm small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+  .track{height:12px;border-radius:6px;background:var(--soft);position:relative;overflow:hidden}
+  .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--green)}
+  .fill.warm{background:var(--amber)} .fill.hot{background:var(--red)}
+  .brow b{text-align:right;font-variant-numeric:tabular-nums}
+  .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+  .toast{position:absolute;left:16px;right:16px;top:16px;box-shadow:0 8px 24px rgba(0,0,0,.25);background:var(--ink);color:#fff;border-radius:16px;padding:12px 14px;font-size:14px;font-weight:600;z-index:6}
+  /* ===== Connect-first screen ===== */
+  .pair-art{position:relative;width:200px;height:200px;align-self:center;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .pair-icon{width:140px;height:140px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
+  .wave{position:absolute;inset:30px;border-radius:50%;border:3px solid var(--amber);opacity:0}
+  .w.busy .wave{animation:ripple 1.6s ease-out infinite} .w.busy .w2{animation-delay:.8s}
+  @keyframes ripple{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.4);opacity:0}}
+  .pair-btn{height:84px;background:var(--ink);color:#fff;box-shadow:0 6px 0 #000}
+  .pair-btn .main{font-size:24px;font-weight:700}.pair-btn .sub{font-size:14px}
+  .w.busy .pair-btn{opacity:.7;pointer-events:none}
+
+  /* ===== Highway site maps ===== */
+  .hw{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);aspect-ratio:400/310;background:#DCE6C6;flex-shrink:0;display:block}
+  .hw.tall{aspect-ratio:400/360}
+  .hw.mini{aspect-ratio:400/190;cursor:pointer}
+  .hw > svg{display:block;width:100%;height:100%}
+  .hw-badge{position:absolute;left:8px;top:8px;background:#fff;border-radius:12px;padding:6px 10px;display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  .hw-badge > div{display:flex;flex-direction:column}
+  .hw-badge svg{flex-shrink:0}
+  .hw-badge b{font-size:20px;line-height:1.05;white-space:nowrap}
+  .hw-badge b.r{color:var(--red)}
+  .hw-badge span{font-size:11px;font-weight:600;color:var(--muted);line-height:1.15}
+  .hw-leg{position:absolute;right:8px;top:8px;background:rgba(255,255,255,.95);border-radius:12px;padding:6px 10px;box-shadow:0 2px 8px rgba(0,0,0,.15);font-size:11px;font-weight:700;width:124px}
+  .hw-leg .gbar{height:8px;border-radius:4px;margin:5px 0 3px;background:linear-gradient(90deg,#22C55E,#FACC15,#F97316,#DC2626)}
+  .hw-leg .ticks{display:flex;justify-content:space-between;color:var(--muted);font-size:10px}
+  .hw-ctrls{position:absolute;right:8px;bottom:8px;display:flex;flex-direction:column;gap:6px}
+  .hw-ctrls span{width:30px;height:30px;border-radius:10px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700}
+  .hw-tap{position:absolute;right:8px;bottom:8px;background:var(--ink);color:#fff;border-radius:10px;padding:5px 10px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .keyrow{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;font-weight:600}
+  .keyrow span{display:flex;align-items:center;gap:6px}
+  .keyrow i{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .maps2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .mapcol{display:flex;flex-direction:column;gap:8px;min-width:0}
+  .maptitle{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .maptitle b{font-size:15px}.maptitle span{font-size:12px;color:var(--muted);font-weight:600}
+  .callout{display:flex;gap:10px;align-items:center;background:var(--amber-bg);color:var(--amber-ink);border-radius:14px;padding:10px 12px;font-size:14px;font-weight:600;line-height:1.3}
+  .focus{background:#fff;border-radius:18px;outline:3px solid var(--red);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  .hwp{animation:hwpulse 1.4s ease-out infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes hwpulse{0%{transform:scale(1);opacity:.8}100%{transform:scale(2.4);opacity:0}}
+
+  /* ===== EHS control centre ===== */
+  .desk{width:1010px}
+  .ehs{display:flex;height:100%;min-height:0}
+  .side{width:200px;flex-shrink:0;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px;padding:18px 12px}
+  .side .brand{padding:0 4px 14px}
+  .side .brand .main{font-size:16px}
+  .side nav{display:flex;flex-direction:column;gap:4px}
+  .side nav button{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:12px;font-size:14px;font-weight:600;color:var(--muted);text-align:left;position:relative}
+  .side nav button[aria-current="page"]{background:var(--ink);color:#fff}
+  .side nav .nb{margin-left:auto;min-width:22px;height:22px;border-radius:11px;background:var(--red);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0 6px}
+  .side-foot{margin-top:auto;font-size:12px;color:var(--muted);line-height:1.35;padding:0 6px}
+  .ehs-main{flex:1;min-width:0;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+  .ehs-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .ehs-head h1{margin:0;font-size:26px;font-weight:700;line-height:1.1}
+  .ehs-head h1 small{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-top:2px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .mchip{height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border-radius:999px;background:#fff;font-size:12px;font-weight:600}
+  .mchip.sim{background:var(--amber-bg);color:var(--amber-ink)}
+  .kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+  .kpis.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .kpi{background:#fff;border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+  .kpi span{font-size:12px;font-weight:600;color:var(--muted);line-height:1.2}
+  .kpi b{font-size:28px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums}
+  .kpi small{font-size:11px;color:var(--muted)}
+  .kpi.hot{background:var(--red-bg)} .kpi.hot b{color:var(--red)}
+  .kpi.warm{background:var(--amber-bg)} .kpi.warm b{color:var(--amber-ink)}
+  .rowg{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:14px}
+  .pnl{background:#fff;border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+  .pnl-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .pnl-h h3{margin:0;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .pnl-h h3 small{font-size:12px;font-weight:500;color:var(--muted)}
+  .lnk{font-size:13px;font-weight:700;color:var(--blue)}
+  .tblwrap{overflow:auto;max-height:520px}
+  table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+  .tbl th{text-align:left;font-size:12px;color:var(--muted);font-weight:700;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;background:#fff;z-index:1}
+  .tbl td{padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl tr.liverow td{background:#FFF7ED}
+  .tbl .mono{font-variant-numeric:tabular-nums}
+  .st.blue{background:var(--blue-bg);color:var(--blue-ink)}
+  .search{height:40px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font:inherit;font-size:14px;background:var(--ground);width:250px}
+  .act{height:40px;padding:0 14px;border-radius:12px;background:var(--ink);color:#fff;font-size:13px;font-weight:600;white-space:nowrap}
+  .act.light{background:var(--soft);color:var(--ink)}
+  .hmap{position:relative;height:250px;border-radius:14px;background:#F8F7F3;border:1px solid var(--line);overflow:hidden}
+  .hmap .z{position:absolute;border:2px dashed #D6D3CA;border-radius:10px;font-size:11px;font-weight:700;color:var(--muted);padding:4px 7px}
+  .hmap .d{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%}
+  .hmap .pin,.hmap .pin-label{z-index:2}
+  .donut-wrap{display:flex;align-items:center;gap:16px}
+  .donut{width:130px;height:130px;border-radius:50%;flex-shrink:0;position:relative}
+  .donut::after{content:"";position:absolute;inset:22px;border-radius:50%;background:#fff}
+  .donut div{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1;line-height:1}
+  .donut b{font-size:24px}.donut small{font-size:11px;color:var(--muted);margin-top:3px}
+  .leg{display:flex;flex-direction:column;gap:6px;font-size:13px}
+  .leg span{display:flex;align-items:center;gap:8px}
+  .leg i{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+  .hbars{display:flex;flex-direction:column;gap:9px}
+  .hbar{display:grid;grid-template-columns:104px minmax(0,1fr) 34px;align-items:center;gap:8px;font-size:13px}
+  .hbar b{text-align:right;font-variant-numeric:tabular-nums}
+  .warnbox{background:var(--amber-bg);color:var(--amber-ink);border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.4}
+  .explain{font-size:13px;color:var(--muted);margin:0;line-height:1.4}
+  .chart svg{width:100%;height:auto;display:block}
+  .cleg{display:flex;gap:16px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .cleg span{display:flex;align-items:center;gap:6px}
+  .cleg i{width:14px;height:4px;border-radius:2px}
+  .bullet{background:var(--ground);border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.4}
+  .bullet b{display:block;font-size:14px;margin-bottom:2px}
+  .seg2{display:flex;background:var(--soft);border-radius:999px;padding:3px}
+  .seg2 button{height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600}
+  .seg2 button[aria-pressed="true"]{background:var(--ink);color:#fff}
+  .rcard{background:var(--ground);border-radius:16px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .rcard b{display:block;font-size:16px}.rcard p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+  /* ===== High-risk zone (unauthorised entry) ===== */
+  #wZone{background:var(--red);color:#fff;animation:zflash 1s steps(2,end) infinite}
+  @keyframes zflash{50%{background:#8E1414}}
+  .zq .main{font-size:28px;font-weight:700;line-height:1.15}.zq .sub{font-size:17px;font-weight:500}
+  .zbox{background:rgba(255,255,255,.16);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;font-size:14px;line-height:1.3}
+  .zbox b{font-size:16px}
+  .zdo{background:#fff;color:var(--ink);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;line-height:1.2}
+  .zdo .main{font-size:21px;font-weight:700}.zdo .sub{font-size:13px;color:var(--muted)}
+  .led{width:14px;height:14px;border-radius:50%;background:#FF5A5A;flex-shrink:0;box-shadow:0 0 0 4px rgba(255,90,90,.35),0 0 14px #FF5A5A;animation:blink .5s steps(2,end) infinite}
+  #wZone .light-btn{color:var(--red);box-shadow:0 5px 0 var(--red-dark)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+  /* ===== Asset pool (HQ QSHE) ===== */
+  .side nav button .lk{margin-left:auto;font-size:10px;font-weight:700;background:var(--amber);color:var(--ink);border-radius:999px;padding:2px 7px}
+  .role-note{background:var(--ground);border-radius:12px;padding:10px;font-size:12px;line-height:1.4;color:var(--muted);margin-top:12px}
+  .role-note b{color:var(--ink)}
+  .mchip.who{background:var(--ink);color:#fff}
+  .mchip.who.site{background:var(--blue-bg);color:var(--blue-ink)}
+  .access{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.4}
+  .tag{font-size:11px;font-weight:700;letter-spacing:.03em;border-radius:6px;padding:3px 8px;flex-shrink:0}
+  .tag.amber{background:var(--amber-bg);color:var(--amber-ink)} .tag.blue{background:var(--blue-bg);color:var(--blue-ink)} .tag.red{background:var(--red-bg);color:var(--red-dark)}
+  .todo{background:var(--ink);color:#fff;border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
+  .todo-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .todo-h b{font-size:16px}.todo-h span{font-size:12px;color:#C9CCD3}
+  .todos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .td{background:#262A31;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:7px}
+  .td .t{align-self:flex-start}
+  .td b{font-size:14px;line-height:1.3}
+  .td p{margin:0;font-size:12px;color:#C9CCD3;line-height:1.4}
+  .td button{margin-top:auto;height:40px;border-radius:10px;background:#fff;color:var(--ink);font-size:13px;font-weight:700}
+  .td .ok{margin-top:auto;height:40px;border-radius:10px;background:var(--green);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 8px}
+  .ubar{display:inline-block;width:56px;height:6px;border-radius:3px;background:var(--soft);vertical-align:middle;margin-right:6px;overflow:hidden}
+  .ubar i{display:block;height:6px}
+  .ages{display:flex;flex-direction:column;gap:10px}
+  .age .r{display:flex;justify-content:space-between;font-size:13px;font-weight:600}
+  .age .b{height:9px;border-radius:5px;background:var(--soft);overflow:hidden;margin:4px 0 2px}.age .b i{display:block;height:9px}
+  .age small{font-size:12px;color:var(--muted)}
+  .rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .rule{border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:1.4}
+  .rule .h{display:flex;justify-content:space-between;gap:6px;align-items:center}
+  .rule .h b{font-size:13px}
+  .rule small{color:var(--muted)}
+  .workload{background:var(--red-bg);color:var(--red-dark);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px}
+  .workload b{font-size:14px}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<!-- ============ Presenter bar (what you click during the presentation) ============ -->
+<header class="bar">
+  <span class="bar-title">Smart Helmet · Live demo</span>
+  <span class="live" id="liveChip"><i></i><span id="liveTxt">Helmet not connected</span></span>
+  <span class="spacer"></span>
+  <span class="bar-hint" id="barHint">Trigger an event:</span>
+  <button type="button" class="trig" data-trigger="fall">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>Fall</button>
+  <button type="button" class="trig" data-trigger="heat">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"/></svg>Heat</button>
+  <button type="button" class="trig" data-trigger="sos">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>SOS</button>
+  <button type="button" class="trig" data-trigger="zone">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>Zone entry</button>
+  <button type="button" class="trig" id="btnOff" title="Dummy data: a crew helmet is dropped, not a fall">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92400E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18"/><path d="M4 17a8 8 0 0 1 16 0"/><path d="M4 4l16 16"/></svg>Helmet off</button>
+  <button type="button" class="trig ghost" id="btnSim" title="Backup if the real helmet won't connect">Simulate helmet</button>
+  <button type="button" class="trig ghost" id="btnReset">Reset</button>
+</header>
+
+<div class="stage" id="stage">
+
+  <!-- ===================== LEFT: WORKER ===================== -->
+  <div class="col">
+    <div class="col-head"><span class="who">Worker's view<small>Ahmad Razak · wearing the live helmet</small></span></div>
+    <div class="phone w" id="worker">
+
+      <!-- Connect helmet (first screen) -->
+      <section class="screen active" id="wPair" aria-label="Connect helmet">
+        <div class="gap">
+          <div class="top">
+            <div class="brand">
+              <div class="logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18"/><path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 9V5"/><path d="M9 6.5v3"/><path d="M15 6.5v3"/></svg></div>
+              <div><span class="main" data-m="app"></span><span class="sub" data-s="app"></span></div>
+            </div>
+            <div class="lang" role="group" aria-label="Language">
+              <button type="button" data-lang="bn" aria-pressed="false">বাংলা</button>
+              <button type="button" data-lang="en" aria-pressed="true">EN</button>
+            </div>
+          </div>
+          <div class="grow"></div>
+          <div class="pair-art" aria-hidden="true">
+            <span class="wave w1"></span><span class="wave w2"></span>
+            <div class="pair-icon"><svg width="76" height="76" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h18"/><path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 9V5"/><path d="M9 6.5v3"/><path d="M15 6.5v3"/></svg></div>
+          </div>
+          <div class="center q"><span class="main" data-m="pairTitle"></span><span class="sub" data-s="pairTitle"></span></div>
+          <div class="center" style="color:var(--muted)"><span style="font-size:16px" data-m="pairHint"></span><span style="font-size:14px" data-s="pairHint"></span></div>
+          <div class="grow"></div>
+          <button type="button" class="btn pair-btn" id="btnPair">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg>
+            <span class="txt"><span class="main" id="pairMain"></span><span class="sub" id="pairSub"></span></span>
+          </button>
+          <p class="foot" data-m="foot"></p>
+        </div>
+      </section>
+
+      <!-- Home -->
+      <section class="screen" id="wHome" aria-label="Worker home">
+        <div class="gap">
+          <div class="top">
+            <div class="brand">
+              <div class="logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18"/><path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 9V5"/><path d="M9 6.5v3"/><path d="M15 6.5v3"/></svg></div>
+              <div><span class="main" data-m="app"></span><span class="sub" data-s="app"></span></div>
+            </div>
+            <div class="lang" role="group" aria-label="Language">
+              <button type="button" data-lang="bn" aria-pressed="false">বাংলা</button>
+              <button type="button" data-lang="en" aria-pressed="true">EN</button>
+            </div>
+          </div>
+
+          <div class="conn" role="status" aria-live="polite">
+            <div class="conn-state"><span class="dot" aria-hidden="true"></span>
+              <div><span class="main" id="connMain"></span><span class="sub" id="connSub"></span></div></div>
+            <button type="button" class="conn-btn" id="btnConn"></button>
+          </div>
+
+          <div class="status" role="status">
+            <div class="ring" id="statusIcon"></div>
+            <div><span class="main" id="statusMain"></span><span class="sub" id="statusSub"></span><span class="note" id="statusNote"></span></div>
+          </div>
+
+          <div class="grid">
+            <div class="tile">
+              <div class="label"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"/></svg><span data-m="air"></span></div>
+              <span class="val" id="vAir">--</span><span class="sub" data-s="air"></span>
+            </div>
+            <div class="tile">
+              <div class="label"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg><span data-m="hum"></span></div>
+              <span class="val" id="vHum">--</span><span class="sub" data-s="hum"></span>
+            </div>
+            <div class="tile" id="tSkin">
+              <div class="label"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg><span data-m="skin"></span></div>
+              <span class="val" id="vSkin">--</span><span class="sub" data-s="skin"></span>
+            </div>
+            <div class="tile" id="tHr">
+              <div class="label"><svg width="18" height="18" viewBox="0 0 24 24" fill="#B91C1C" aria-hidden="true"><path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z"/></svg><span data-m="hr"></span></div>
+              <span class="val" id="vHr">--</span><span class="sub"><span data-s="hr"></span> · <span id="vHrLim"></span></span>
+            </div>
+          </div>
+
+          <div class="tip blue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l-1.5 17a2 2 0 0 1-2 1.8h-5a2 2 0 0 1-2-1.8z"/><path d="M6.5 9h11"/></svg>
+            <div><span class="main" data-m="water"></span><span class="sub" data-s="water"></span></div>
+          </div>
+
+          <div class="grow"></div>
+
+          <button type="button" class="btn sos" id="btnSos">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>
+            <span class="txt"><span class="main" data-m="sos"></span><span class="sub" data-s="sos"></span></span>
+          </button>
+          <a class="btn outline" id="callLink" href="#">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+            <span><span class="main" data-m="call"></span> <span class="sub">· <span data-s="call"></span></span></span>
+          </a>
+        </div>
+      </section>
+
+      <!-- Fall check -->
+      <section class="screen" id="wFall" aria-label="Fall check" role="alertdialog">
+        <div class="gap" style="gap:18px">
+          <div class="pill">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>
+            <span class="main" data-m="emerg"></span><span class="sub">·&nbsp;<span data-s="emerg"></span></span>
+          </div>
+          <div class="center q" style="margin-top:6px"><span class="main" data-m="fallQ"></span><span class="sub" data-s="fallQ"></span></div>
+          <div class="count">
+            <svg viewBox="0 0 190 190" width="190" height="190" aria-hidden="true">
+              <circle cx="95" cy="95" r="85" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="10"/>
+              <circle id="ring" cx="95" cy="95" r="85" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-dasharray="534.07" stroke-dashoffset="0" style="transition:stroke-dashoffset 1s linear"/>
+            </svg>
+            <div class="num" aria-live="assertive"><span class="n" id="countNum">10</span><small><span data-m="sec"></span> · <span data-s="sec"></span></small></div>
+          </div>
+          <div class="center"><span style="font-size:17px;font-weight:600" data-m="willAlert"></span><span style="font-size:14px" data-s="willAlert"></span></div>
+          <div class="grow"></div>
+          <button type="button" class="btn white-outline" id="btnSendHelp">
+            <span><span class="main" data-m="sendNow"></span> <span class="sub">· <span data-s="sendNow"></span></span></span>
+          </button>
+          <div class="tip dark">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18"/><path d="M4 17a8 8 0 0 1 16 0"/><circle cx="12" cy="12" r="2"/></svg>
+            <div><span class="main" data-m="holdBtn"></span><span class="sub" data-s="holdBtn"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Heat alert -->
+      <section class="screen" id="wHeat" aria-label="Heat alert" role="alertdialog">
+        <div class="heat-top">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:60px;height:60px;flex-shrink:0;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"/><path d="M12 9v6"/></svg>
+            </div>
+            <div class="title"><span class="main" data-m="tooHot"></span><span class="sub" data-s="tooHot"></span></div>
+          </div>
+          <div class="reading">
+            <div style="line-height:1.2">
+              <span style="display:block;font-size:14px;font-weight:600"><span data-m="skin"></span> · <span data-s="skin"></span></span>
+              <span style="display:block;font-size:13px" data-m="unusual"></span>
+              <span style="display:block;font-size:12px" data-s="unusual"></span>
+            </div>
+            <div class="temp"><span class="big" id="vHeat">38.2°C</span><span class="sim" id="heatSrc"></span></div>
+          </div>
+          <div class="reading">
+            <div style="line-height:1.2">
+              <span style="display:block;font-size:14px;font-weight:600"><span data-m="hr"></span> · <span data-s="hr"></span></span>
+              <span style="display:block;font-size:13px" id="hrNoteM"></span>
+              <span style="display:block;font-size:12px" id="hrNoteS"></span>
+            </div>
+            <div class="temp"><span class="big" id="vHrHeat">148</span><span class="sim">bpm</span></div>
+          </div>
+        </div>
+        <div class="heat-body">
+          <span class="h2"><span data-m="doNow"></span> · <span data-s="doNow"></span></span>
+          <div class="step"><span class="k" data-num="1">1</span><div><span class="main" data-m="s1"></span><span class="sub" data-s="s1"></span></div></div>
+          <div class="step"><span class="k" data-num="2">2</span><div><span class="main" data-m="s2"></span><span class="sub" data-s="s2"></span></div></div>
+          <div class="step"><span class="k" data-num="3">3</span><div><span class="main" data-m="s3"></span><span class="sub" data-s="s3"></span></div></div>
+          <div class="tip greenbg" id="heatSeen" hidden>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <div><span class="main" data-m="seen"></span><span class="sub" data-s="seen"></span></div>
+          </div>
+          <div class="tip redbg" id="heatDizzy">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>
+            <div><span class="main" data-m="dizzy"></span><span class="sub" data-s="dizzy"></span></div>
+          </div>
+          <div class="grow"></div>
+          <button type="button" class="btn rest" id="btnRest">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span class="txt"><span class="main" data-m="resting"></span><span class="sub" data-s="resting"></span></span>
+          </button>
+          <button type="button" class="btn outline" id="btnTell" style="color:var(--red)">
+            <span><span class="main" data-m="tell"></span> <span class="sub">· <span data-s="tell"></span></span></span>
+          </button>
+        </div>
+      </section>
+
+      <!-- High-risk zone: unauthorised entry -->
+      <section class="screen" id="wZone" aria-label="High-risk zone" role="alertdialog">
+        <div class="gap" style="gap:14px">
+          <div class="pill">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>
+            <span class="main" data-m="zoneTitle"></span><span class="sub">·&nbsp;<span data-s="zoneTitle"></span></span>
+          </div>
+          <div class="center zq"><span class="main" data-m="notAuth"></span><span class="sub" data-s="notAuth"></span></div>
+          <div class="zbox">
+            <b>PTW-0421 · Energisation works</b>
+            <span><span data-m="liveCables"></span> · <span data-s="liveCables"></span></span>
+            <span><span data-m="inZone"></span> · <span data-s="inZone"></span>: <b id="zoneTimer">0:00</b></span>
+          </div>
+          <div class="zdo">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            <div><span class="main" data-m="leaveNow"></span><span class="sub" data-s="leaveNow"></span><span class="sub"><span data-m="goBack"></span> · <span data-s="goBack"></span></span></div>
+          </div>
+          <div class="tip dark">
+            <span class="led" aria-hidden="true"></span>
+            <div><span class="main" data-m="clipBeep"></span><span class="sub" data-s="clipBeep"></span></div>
+          </div>
+          <div class="tip greenbg" id="zoneComing" hidden>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <div><span class="main" data-m="zoneComing"></span><span class="sub" data-s="zoneComing"></span></div>
+          </div>
+          <div class="tip dark" id="zoneTold">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+            <div><span class="main" data-m="zoneTold"></span><span class="sub" data-s="zoneTold"></span></div>
+          </div>
+          <div class="grow"></div>
+          <button type="button" class="btn light-btn" id="btnLeaveZone">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span><span class="main" data-m="zoneLeave"></span> <span class="sub">· <span data-s="zoneLeave"></span></span></span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Help sent / help coming -->
+      <section class="screen" id="wHelp" aria-label="Help" role="alertdialog">
+        <div class="gap" style="gap:18px">
+          <div class="help-icon" id="helpIcon"></div>
+          <div class="center help-txt"><span class="main" id="helpMain"></span><span class="sub" id="helpSub"></span></div>
+          <div class="center help-note"><span id="helpNote"></span><span id="helpNote2" style="font-size:13px"></span></div>
+          <div class="grow"></div>
+          <a class="btn sos" id="callLink2" href="#">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+            <span class="txt"><span class="main" data-m="call"></span><span class="sub" data-s="call"></span></span>
+          </a>
+          <p class="foot" data-m="foot"></p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ===================== RIGHT: SUPERVISOR / EHS ===================== -->
+  <div class="col" id="rightCol">
+    <div class="col-head">
+      <span class="who" id="rightWho">Supervisor's view<small>Faizal · Subcon A (Structure)</small></span>
+      <div class="seg" role="group" aria-label="View">
+        <button type="button" data-view="sup" aria-pressed="true">Supervisor</button>
+        <button type="button" data-view="ehs" aria-pressed="false">EHS control centre</button>
+        <button type="button" data-view="asset" aria-pressed="false">Asset pool</button>
+      </div>
+    </div>
+    <div class="phone" id="right"></div>
+  </div>
+</div>
+
+<script>
+/* ======================================================================
+   SETTINGS
+   ====================================================================== */
+const CONFIG = {
+  supervisorPhone: "01113148637",
+  countdownSeconds: 10,      // fall confirmation countdown
+  updateEveryMs: 500,        // demo simulated readings; live BLE is firmware-paced
+  connectDelayMs: 1500,      // pretend pairing time in simulated mode
+  escalateSeconds: 120,      // unacknowledged alert escalates to EHS
+  /* ---- Real helmet (ESP32-C3, firmware V8.3, over Bluetooth Low Energy) ---- */
+  bleNamePrefix: "SH-001",       // new helmet name
+  heatOnC: 40.01,            // DEMO ONLY: strictly above 40 C
+  heatRearmC: 38.0,          // re-arm only after helmet sends TEMP_CLEAR (3s below 38C)
+  hrSustainSec: 30           // heart rate above (180 - age) for this long also raises the heat alert
+};
+/* Same IDs as smart_helmet_v8_3.ino */
+const BLE = {
+  service: "4fafc201-1fb5-459e-8fcc-c5c9c331914b",
+  toHelmet: "6e400002-b5a3-f393-e0a9-e50e24dcca9e",   // website writes: HELLO · ZONE_ON · ZONE_OFF
+  fromHelmet: "beb5483e-36e1-4688-b7f5-ea07361b26a8"  // helmet notifies: BODY · ENV · ACC · FALL · ESC · ACK · END · TEMP_ALERT · SOS ...
+};
+
+/* ======================================================================
+   WORKER TEXT  [Bangla, English]
+   ====================================================================== */
+const T = {
+  app:["স্মার্ট হেলমেট","Smart Helmet"],
+  connected:["হেলমেট সংযুক্ত","Helmet connected"],
+  disconnected:["হেলমেট সংযুক্ত নয়","Helmet not connected"],
+  connecting:["সংযোগ হচ্ছে…","Connecting…"],
+  connectBtn:["হেলমেট সংযোগ করুন","Connect helmet"],
+  disconnectBtn:["সংযোগ বিচ্ছিন্ন করুন","Disconnect helmet"],
+  safe:["আপনি নিরাপদ","You are safe"],
+  normal:["সব রিডিং স্বাভাবিক","All readings normal"],
+  noData:["কোনো রিডিং নেই","No readings"],
+  connectFirst:["শুরু করতে হেলমেট সংযোগ করুন","Connect your helmet to start"],
+  air:["বাতাসের তাপ","Air temperature"],
+  hum:["আর্দ্রতা","Humidity"],
+  skin:["ত্বকের তাপ","Skin temperature"],
+  water:["প্রতি ২০ মিনিটে পানি পান করুন","Drink water every 20 minutes"],
+  sos:["সাহায্য দরকার","I need help · SOS"],
+  call:["সুপারভাইজারকে কল করুন","Call supervisor"],
+  foot:["ডেমো ডেটা · এটি চিকিৎসা যন্ত্র নয়","Demo data · Not a medical device"],
+  emerg:["জরুরি সতর্কতা","Emergency check"],
+  fallQ:["আপনি কি পড়ে গেছেন?","Did you fall?"],
+  sec:["সেকেন্ড","seconds"],
+  willAlert:["উত্তর না দিলে অফিসকে জানানো হবে","If you don't answer, the office will be alerted"],
+  sendNow:["এখনই সাহায্য পাঠান","Send help now"],
+  holdBtn:["ঠিক আছেন? হেলমেটের বোতাম ২ সেকেন্ড চেপে ধরুন","I'm OK? Hold the helmet button for 2 seconds"],
+  tooHot:["খুব গরম!","Too hot!"],
+  unusual:["ত্বকের তাপমাত্রা অস্বাভাবিকভাবে বাড়ছে","Unusual rise in skin temperature detected"],
+  simulated:["(সিমুলেটেড)","(Simulated)"],
+  doNow:["এখনই করুন","Do this now"],
+  s1:["কাজ থামান","Stop working"],
+  s2:["ছায়ায় গিয়ে বসুন","Sit down in the shade"],
+  s3:["ঠান্ডা পানি পান করুন","Drink cool water"],
+  seen:["সুপারভাইজার আপনার সতর্কতা দেখেছেন","Your supervisor has seen this alert"],
+  dizzy:["মাথা ঘুরলে বা বমি লাগলে সাহায্য চান","Dizzy or feel sick? Ask for help"],
+  resting:["আমি বিশ্রাম নিচ্ছি","I'm resting now"],
+  tell:["সুপারভাইজারকে জানান","Tell supervisor"],
+  alertSent:["সতর্কতা পাঠানো হয়েছে","Alert sent"],
+  waitNote:["সুপারভাইজারকে জানানো হয়েছে। যেখানে আছেন সেখানে থাকুন।","Your supervisor has been told. Stay where you are."],
+  helpSent:["সাহায্য আসছে","Help is on the way"],
+  comingNote:["সুপারভাইজার ফয়সাল আপনার কাছে আসছেন","Supervisor Faizal is coming to you"],
+  pairTitle:["আপনার হেলমেট সংযোগ করুন","Connect your helmet"],
+  pairHint:["হেলমেট চালু করুন এবং এই ফোনের কাছে রাখুন","Turn on the helmet and keep it near this phone"],
+  hr:["হৃদস্পন্দন","Heart rate"],
+  hrAbove:["নিরাপদ সীমার উপরে","Above the safe limit"],
+  hrOk:["নিরাপদ সীমার মধ্যে","Within the safe limit"],
+  live:["(লাইভ)","(Live)"],
+  zoneTitle:["বিপদ এলাকা","High-risk zone"],
+  notAuth:["এই এলাকায় আপনার প্রবেশের অনুমতি নেই","You are not allowed in this area"],
+  liveCables:["১৭:০০ পর্যন্ত বিদ্যুৎ চালু","Live cables until 17:00"],
+  inZone:["এলাকার ভিতরে","Inside zone"],
+  leaveNow:["এখনই বের হয়ে যান","Leave now"],
+  goBack:["যে পথে এসেছেন সেই পথে ফিরুন","Go back the way you came"],
+  clipBeep:["আপনার হেলমেট বিপ করছে, লাল আলো জ্বলছে","Your clip is beeping and flashing red"],
+  zoneTold:["সুপারভাইজারকে জানানো হয়েছে","Your supervisor has been told"],
+  zoneComing:["সুপারভাইজার আপনার কাছে আসছেন","Your supervisor is coming to you"],
+  zoneLeave:["আমি বের হচ্ছি","I'm leaving now"]
+};
+
+/* ======================================================================
+   PEOPLE (fictional sample data)
+   Ahmad = the worker wearing the real helmet. Everyone else is simulated.
+   ====================================================================== */
+const LIVE = { id:"W-023", helmet:"SHC-023", name:"Ahmad Razak", role:"Steel Fixer", co:"Subcon A", zone:"CH 4+300 · Eastbound", hx:140, hy:250, age:39,
+  contact:"Wife · +60 1•-••• 6789", blood:"O+", medical:"None declared", doc:"IC ••••••-••-5521" };
+const HR_LIMIT = 180 - LIVE.age;   // sustained heart-rate limit for heat strain: 180 minus age
+const CREW = [   // Supervisor Faizal's crew (Subcon A) — same IDs as the EHS register
+  { id:"W-031", name:"Suresh Kumar",    role:"Scaffolder",     zone:"CH 4+850", hx:300, hy:92,  skin:35.1, hr:98 },
+  { id:"W-050", name:"Mohd Faiz Hakim", role:"General Worker", zone:"CH 4+550", hx:214, hy:176, skin:35.6, hr:104 },
+  { id:"W-058", name:"Bikash Tamang",   role:"Rebar Worker",   zone:"CH 4+050", hx:56,  hy:264, skin:36.0, hr:112 },
+  { id:"W-062", name:"Lee Jun Hao",     role:"Formwork",       zone:"CH 4+950", hx:356, hy:50,  skin:35.3, hr:95 }
+];
+const TYPES = {
+  fall: { title:"Fall detected", tone:"red" },
+  sos:  { title:"SOS pressed",   tone:"red" },
+  heat: { title:"High heat risk", tone:"amber" },
+  zone: { title:"Unauthorised zone entry", tone:"red" }
+};
+/* High-risk zone from an approved permit-to-work. Only workers tagged on the permit may enter. */
+const ZONE = { ptw:"PTW-0421", work:"Energisation (M&E)", place:"CH 4+400 · TNB substation", until:"17:00",
+  x:228, y:200, w:104, h:72, inX:244, inY:248,
+  auth:[ { id:"W-112", x:312, y:228 }, { id:"W-115", x:318, y:254 } ], onPermit:["W-112","W-115","W-121"] };
+
+/* ======================================================================
+   SHARED STATE  — both phones read from this one object
+   ====================================================================== */
+let S;
+function fresh(){
+  const now = Date.now();
+  return {
+    conn:"off",                // on | off | busy — starts disconnected
+    workerScreen:"pair",
+    ehsPage:"dashboard", search:{}, climPeriod:"shift",
+    air:32.0, hum:68, skin:35.4, hr:96, inZone:false,
+    alerts:[],                 // live alerts for Ahmad
+    resolved:3, responseTimes:[],
+    rightView:"sup", supTab:"alerts", sheet:null, toast:null,
+    helmetOff:null,
+    ahmadOnPermit:false, permitChange:null, permitEntries:[],   // dummy permit edit (EHS adds/removes Ahmad on PTW-0421)            // dummy "helmet off" event for a crew member (no real helmet involved)
+    lastSeen:null,             // Ahmad's last known helmet location (kept when the helmet goes offline)
+    log:[                      // older simulated events
+      { t:now-38*60e3, cls:"a", text:"Heat risk · Bikash Tamang · resolved after rest" },
+      { t:now-75*60e3, cls:"g", text:"Shift started · crew helmets checked" }
+    ]
+  };
+}
+S = fresh();
+
+/* ======================================================================
+   HELPERS
+   ====================================================================== */
+let lang = "en";
+try { lang = localStorage.getItem("helmetLang") || "en"; } catch(e) {}
+const BN = "০১২৩৪৫৬৭৮৯";
+const num = v => lang === "bn" ? String(v).replace(/\d/g, d => BN[d]) : String(v);
+const tx = (k, i) => T[k][i];
+const mi = () => lang === "bn" ? 0 : 1;
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,"0");
+const clock = t => { const d = new Date(t); return pad(d.getHours())+":"+pad(d.getMinutes()); };
+const since = t => Math.max(0, (Date.now()-t)/1000);
+const mmss = s => Math.floor(s/60)+":"+pad(Math.floor(s%60));
+const initials = n => n.split(" ").slice(0,2).map(s=>s[0]).join("");
+const openAlerts = () => S.alerts.filter(a => a.status !== "resolved");
+const activeAlerts = () => S.alerts.filter(a => a.status === "new" || a.status === "ack");
+function addLog(cls, text){ S.log.unshift({ t:Date.now(), cls, text }); }
+/* Last known helmet location (Ahmad). Live while connected; kept as "last seen" after it goes offline. */
+function lastLoc(){
+  if (S.conn === "on") return { where: S.inZone ? ZONE.ptw + " zone · " + ZONE.place : LIVE.zone, when:"Live" };
+  if (S.lastSeen) return { where: S.lastSeen.where, when: "last seen " + clock(S.lastSeen.t) };
+  return { where: "No location yet", when: "helmet not connected yet" };
+}
+/* Dummy example: Bikash's helmet is dropped. Impact + no skin contact = "helmet off", not a fall. */
+const OFF_W = { id:"W-058", helmet:"SHC-058", name:"Bikash Tamang", role:"Rebar Worker", zone:"CH 4+050", hx:56, hy:264 };
+function helmetOffEvent(){
+  if (S.helmetOff && S.helmetOff.status !== "resolved") return;
+  S.helmetOff = { t:Date.now(), status:"new" };
+  addLog("a", "Helmet off · " + OFF_W.name + " · impact with no skin contact · no fall alert sent");
+  S.supTab = "alerts"; renderAll();
+}
+function helmetOffAck(){ if (!S.helmetOff) return; S.helmetOff.status = "ack"; S.helmetOff.ackAt = Date.now(); addLog("g", "Faizal asked the crew to check " + OFF_W.name + "'s helmet"); renderAll(); }
+function helmetOffResolve(){ if (!S.helmetOff) return; S.helmetOff.status = "resolved"; S.resolved++; addLog("g", "Helmet back on · " + OFF_W.name + " · skin contact restored"); renderAll(); }
+/* Dummy permit edit: EHS adds or removes Ahmad (W-023) on PTW-0421 */
+function togglePermit(){
+  S.ahmadOnPermit = !S.ahmadOnPermit;
+  S.permitChange = { t:Date.now(), add:S.ahmadOnPermit };
+  addLog("g", (S.ahmadOnPermit ? "EHS added W-023 Ahmad Razak to " : "EHS removed W-023 Ahmad Razak from ") + ZONE.ptw);
+  renderAll();
+  toast(S.ahmadOnPermit ? "Ahmad added to " + ZONE.ptw + ": he may now enter the zone" : "Ahmad removed from " + ZONE.ptw + ": entry will raise the alarm");
+}
+const permitList = () => ZONE.onPermit.concat(S.ahmadOnPermit ? ["W-023"] : []);
+function toast(msg){ S.toast = msg; clearTimeout(toast._t); toast._t = setTimeout(()=>{ S.toast = null; renderRight(); }, 2600); renderRight(); }
+
+/* ======================================================================
+   EVENTS  — the helmet (real or demo) calls these
+   ====================================================================== */
+function helmetEvent(type, fromHelmet = false){
+  if (S.conn !== "on") { flashHint(); return; }
+  if (openAlerts().some(a => a.type === type)) return;       // already showing
+  if (!fromHelmet && S.real && type !== "zone") helmetSend("DEMO_" + type.toUpperCase());
+  if (type === "fall") {
+    S.alerts.push({ id:Date.now(), type:"fall", status:"pending", t:Date.now(), left:CONFIG.countdownSeconds });
+    showWorker("fall"); startCountdown();
+  }
+  if (type === "zone" && S.ahmadOnPermit) {     // on the permit: entry allowed, no alarm
+    S.permitEntries.push(Date.now());
+    addLog("g", "Ahmad Razak entered the " + ZONE.ptw + " zone · on permit · allowed");
+    toast("Ahmad is on " + ZONE.ptw + ": entry allowed, no alarm");
+    renderAll(); return;
+  }
+  if (type === "zone") {
+    S.inZone = true; if (!S.realHr) S.hr = 108;
+    S.alerts.push({ id:Date.now(), type:"zone", status:"new", t:Date.now() });
+    addLog("r", "Unauthorised entry · Ahmad Razak · "+ZONE.ptw+" zone · not on permit");
+    helmetSend("ZONE_ON");                 // real clip: buzzer + red LED on
+    if (!S.real) beep();              // no real clip: beep from the laptop instead
+    if (navigator.vibrate) navigator.vibrate([400,150,400]);
+    showWorker("zone");
+  }
+  if (type === "heat") {
+    if (!S.real) S.skin = 40.6;       // simulated helmet only; the real helmet sends its own reading
+    if (!S.realHr) S.hr = 148;
+    S.alerts.push({ id:Date.now(), type:"heat", status:"new", t:Date.now() });
+    addLog("a", `Heat risk · Ahmad Razak · skin ${S.skin.toFixed(1)}°C · heart rate ${Math.round(S.hr)} bpm ${S.real ? "(live helmet)" : "(simulated)"}`);
+    if (navigator.vibrate) navigator.vibrate(400);
+    showWorker("heat");
+  }
+  if (type === "sos") {
+    S.alerts.push({ id:Date.now(), type:"sos", status:"new", t:Date.now() });
+    addLog("r", "SOS pressed · Ahmad Razak · CH 4+300");
+    showWorker("help");
+  }
+  S.supTab = "alerts";
+  renderAll();
+}
+function confirmFall(){
+  const a = S.alerts.find(x => x.type === "fall" && x.status === "pending");
+  if (!a) return;
+  a.status = "new"; a.t = Date.now();
+  addLog("r", "Fall detected · Ahmad Razak · CH 4+300");
+  stopCountdown(); showWorker("help"); renderAll();
+}
+function acknowledge(id){
+  const a = S.alerts.find(x => x.id === id); if (!a) return;
+  a.status = "ack"; a.ackAt = Date.now();
+  S.responseTimes.push(since(a.t));
+  addLog("g", "Acknowledged by Faizal · "+TYPES[a.type].title+" · "+mmss(since(a.t)));
+  renderAll();
+}
+function resolve(id){
+  const a = S.alerts.find(x => x.id === id); if (!a) return;
+  a.status = "resolved"; S.resolved++;
+  if (a.type === "heat") { S.heatArmed = false; if (!S.real) S.skin = 35.6; if (!S.realHr) S.hr = 98; }
+  if (S.real) helmetSend("RESOLVE_" + a.type.toUpperCase());
+  if (a.type === "zone") { S.inZone = false; if (!S.realHr) S.hr = 98; helmetSend("ZONE_OFF"); }
+  addLog("g", "Resolved · "+TYPES[a.type].title+" · Ahmad Razak");
+  if (!openAlerts().length) showWorker("home");
+  else if (S.workerScreen === "heat" && a.type === "heat") showWorker("home");
+  else if (S.workerScreen === "zone" && a.type === "zone") showWorker("home");
+  renderAll();
+}
+function workerLeftZone(){
+  const a = S.alerts.find(x => x.type === "zone" && x.status !== "resolved");
+  if (a) { a.status = "resolved"; S.resolved++; addLog("g", "Ahmad Razak left the "+ZONE.ptw+" zone · inside for "+mmss(since(a.t))); }
+  S.inZone = false; if (!S.realHr) S.hr = 98;
+  helmetSend("ZONE_OFF");                   // real clip: buzzer + red LED off
+  showWorker("home"); renderAll();
+  toast("Ahmad has left the high-risk zone");
+}
+/* Clip alarm sound for the demo (plays after a click, so browsers allow it) */
+let actx = null;
+function beep(){
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = actx.currentTime;
+    for (let i = 0; i < 4; i++) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = "square"; o.frequency.value = 1760;
+      g.gain.setValueAtTime(0.0001, t0 + i*0.3);
+      g.gain.exponentialRampToValueAtTime(0.12, t0 + i*0.3 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + i*0.3 + 0.18);
+      o.connect(g); g.connect(actx.destination); o.start(t0 + i*0.3); o.stop(t0 + i*0.3 + 0.2);
+    }
+  } catch(e) {}
+}
+function workerResting(){
+  const a = S.alerts.find(x => x.type === "heat" && x.status !== "resolved");
+  if (a) { a.resting = Date.now(); addLog("a", "Ahmad Razak is resting in the shade"); }
+  showWorker("home"); renderAll();
+}
+function workerAsksHelp(){
+  const a = S.alerts.find(x => x.type === "heat" && x.status !== "resolved");
+  if (a) { a.asked = true; a.status = a.status === "ack" ? "ack" : "new"; addLog("r", "Ahmad Razak asked for help (heat)"); }
+  showWorker("help"); renderAll();
+}
+
+/* ======================================================================
+   CONNECTION
+   Real helmet: ESP32 over Bluetooth Low Energy (Chrome or Edge on a laptop).
+   Simulated helmet: the "Simulate helmet" button on the presenter bar (backup).
+   ====================================================================== */
+let bleDev = null, bleTx = null, bleBuf = "";
+function setConn(state){
+  S.conn = state;
+  if (state === "off") { addLog("", "Ahmad Razak's helmet disconnected"); stopCountdown(); showWorker("pair"); S.real = false; S.realHr = false; bleTx = null; }
+  if (state === "on")  { addLog("g", "Ahmad Razak's helmet connected" + (S.real ? " (live)" : " (simulated)")); showWorker("home"); }
+  renderAll();
+}
+function simulateHelmet(){
+  if (S.conn !== "off") return;
+  S.real = false; S.conn = "busy"; renderAll();
+  setTimeout(() => setConn("on"), CONFIG.connectDelayMs);
+}
+
+/* Demo uses the existing fixed worker/site coordinates. No browser geolocation. */
+async function connectHelmet(){
+  if (S.conn !== "off") return;
+  if (!navigator.bluetooth) { barMsg("Bluetooth needs Chrome or Edge on a laptop. Or use Simulate helmet."); return; }
+  S.conn = "busy"; renderAll();
+  try {
+    bleDev = await navigator.bluetooth.requestDevice({ filters:[{ namePrefix: CONFIG.bleNamePrefix }], optionalServices:[BLE.service] });
+    bleDev.addEventListener("gattserverdisconnected", () => { if (S.conn === "on") { setConn("off"); barMsg("Helmet disconnected. Click Connect helmet to reconnect."); } });
+    const server = await bleDev.gatt.connect();
+    const svc = await server.getPrimaryService(BLE.service);
+    const rx = await svc.getCharacteristic(BLE.fromHelmet);
+    bleTx = await svc.getCharacteristic(BLE.toHelmet);
+    rx.addEventListener("characteristicvaluechanged", e => onHelmetData(new TextDecoder().decode(e.target.value)));
+    await rx.startNotifications();
+    S.real = true; S.realHr = false; S.heatArmed = true; S.hrHighSince = 0;
+    setConn("on");
+    await bleTx.writeValue(new TextEncoder().encode("HELLO"));   // firmware starts monitoring only after HELLO
+    helmetSend("ZONE_OFF");
+  } catch (err) {
+    S.conn = "off"; bleTx = null; renderAll();
+    if (err && err.name !== "NotFoundError") barMsg("Could not connect: " + (err.message || err) + ". Try again, or use Simulate helmet.");
+  }
+}
+function disconnectHelmet(){
+  helmetSend("ZONE_OFF");
+  try { if (bleDev && bleDev.gatt.connected) bleDev.gatt.disconnect(); } catch(e) {}
+  setConn("off");
+}
+/* Website → helmet: HELLO (start monitoring), ZONE_ON (buzzer + red LED), ZONE_OFF */
+let bleQueue = Promise.resolve();
+function helmetSend(cmd){
+  if (!bleTx) return;
+  const tx = bleTx;   // queue writes: Web Bluetooth refuses two writes at the same time
+  bleQueue = bleQueue.then(() => tx.writeValue(new TextEncoder().encode(cmd))).catch(() => {});
+}
+/* Helmet → website (firmware V8.3), one message per Bluetooth packet:
+   HELLO_IPHONE        monitoring started
+   BODY,obj,amb        GY-906 surface (skin) temperature + sensor ambient, every 2 s   ("NA" if invalid)
+   ENV,temp,hum        BME280 air temperature + humidity, at start then every 5 min
+   ACC,g               total acceleration, every 1 s
+   FALL,id,peakG       impact >= 2.2 g  -> "Did you fall?" countdown starts
+   ESC,id              helmet alarm escalated (5 s, no response)
+   ACK,id              worker held the helmet button 2 s = "I'm OK" -> fall cancelled
+   END,id              no response after 10 s -> fall alert sent to supervisor; buzzer persists
+   TEMP_ALERT,t        body temperature over the limit for the set time (helmet beeps too)
+   TEMP_CLEAR          body temperature back below the limit
+   SOS                 button held 2 s with no fall alarm running
+   PAUSE / RESUME      short button press (bench-test pause)                           */
+function onHelmetData(chunk){
+  chunk.split(/\r?\n/).map(l => l.trim()).filter(Boolean).forEach(handleHelmetLine);
+}
+function handleHelmetLine(line){
+  if (S.conn !== "on") return;
+  const p = line.split(","), k = p[0], n = v => (v === undefined || v === "NA") ? NaN : parseFloat(v);
+  if (k === "BODY") {
+    const skin = n(p[1]);
+    if (!isNaN(skin)) S.skin = skin;
+    checkHeat();
+  }
+  if (k === "ENV") {
+    const t = n(p[1]), h = n(p[2]);
+    if (!isNaN(t)) S.air = t;
+    if (!isNaN(h)) S.hum = h;
+  }
+  if (k === "ACC") S.accG = n(p[1]);
+  if (k === "FALL") { helmetEvent("fall", true); addLog("r", "Helmet impact " + (p[2] || "") + " g · checking on worker"); }
+  if (k === "ACK") {
+    const f = S.alerts.find(a => a.type === "fall" && a.status !== "resolved");
+    if (f && f.status === "pending") cancelFall();
+    else if (f) resolve(f.id);
+  }
+  if (k === "ALARM_ACK") {
+    const type = (p[1] || "").toLowerCase();
+    const a = S.alerts.find(x => x.type === type && x.status !== "resolved");
+    if (a) resolve(a.id);
+  }
+  if (k === "END") confirmFall();
+  if (k === "TEMP_CLEAR") {
+    // Firmware confirms 3 continuous seconds below 38C. Clear the
+    // displayed supervisor heat incident as well as the local buzzer.
+    const activeHeat = S.alerts.find(a => a.type === "heat" && a.status !== "resolved");
+    if (activeHeat) resolve(activeHeat.id);
+    S.heatArmed = true;
+    addLog("g", "Heat recovered · below 38°C for 3 seconds");
+    renderAll();
+  }
+  if (k === "TEMP_ALERT") {
+    const t = n(p[1]); if (!isNaN(t)) S.skin = t;
+    // firmware repeats TEMP_ALERT every 2 s; only open a new alert after the sensor has cooled (re-armed)
+    if (S.heatArmed && !S.alerts.some(a => a.type === "heat" && a.status !== "resolved")) { S.heatArmed = false; helmetEvent("heat", true); }
+  }
+  if (k === "SOS") helmetEvent("sos", true);
+  if (k === "HELLO_IPHONE") barMsg("Helmet monitoring started · live readings on");
+  if (k === "PAUSE") barMsg("Helmet button: monitoring paused. Press the helmet button once to resume.");
+  if (k === "RESUME") barMsg("Helmet monitoring resumed");
+  if (k === "BODY" || k === "ENV") {
+    renderWorker();
+    if (S.supTab === "workers" || S.supTab === "map" || S.rightView === "ehs") renderRight();
+  }
+}
+/* Worker held the helmet button during the fall check: he is OK, so no alert goes out */
+function cancelFall(){
+  const a = S.alerts.find(x => x.type === "fall" && x.status === "pending");
+  if (!a) return;
+  a.status = "resolved";
+  addLog("g", "Fall check cancelled · Ahmad Razak held the helmet button (I'm OK)");
+  stopCountdown();
+  showWorker(openAlerts().length ? S.workerScreen : "home");
+  renderAll();
+  toast("Ahmad pressed his helmet button: he's OK");
+}
+/* Heat alert from real readings: skin temperature over the line, or heart rate above (180 - age) for a while */
+function checkHeat(){
+  const open = S.alerts.some(a => a.type === "heat" && a.status !== "resolved");
+  if (!S.real && S.skin < CONFIG.heatRearmC) S.heatArmed = true; // real helmet uses TEMP_CLEAR
+  if (S.realHr && S.hr >= HR_LIMIT) { S.hrHighSince = S.hrHighSince || Date.now(); } else S.hrHighSince = 0;
+  const hrTrip = S.hrHighSince && (Date.now() - S.hrHighSince) / 1000 >= CONFIG.hrSustainSec;
+  if (!open && S.heatArmed && ((!S.real && S.skin >= CONFIG.heatOnC) || hrTrip)) {
+    S.heatArmed = false; S.hrHighSince = 0;
+    helmetEvent("heat", true);
+  }
+}
+function barMsg(text){ const h = $("barHint"); h.textContent = text; flashHint(); clearTimeout(barMsg._t); barMsg._t = setTimeout(renderBar, 6000); }
+$("btnPair").onclick = connectHelmet;
+$("btnConn").onclick = () => { if (S.conn === "on") disconnectHelmet(); };
+
+/* ======================================================================
+   WORKER SCREENS
+   ====================================================================== */
+const ICON_OK  = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+const ICON_OFF = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18"/><path d="M4 17a8 8 0 0 1 16 0"/><path d="M4 4l16 16"/></svg>';
+const ICON_BELL= '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#16181D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>';
+const ICON_RUN = '<svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
+function showWorker(name){
+  S.workerScreen = name;
+  const map = { pair:"wPair", home:"wHome", fall:"wFall", heat:"wHeat", help:"wHelp", zone:"wZone" };
+  document.querySelectorAll("#worker .screen").forEach(s => s.classList.toggle("active", s.id === map[name]));
+  if (name !== "fall") stopCountdown();
+}
+
+let cdTimer = null;
+const C = 2 * Math.PI * 85;
+function startCountdown(){
+  stopCountdown();
+  const ring = $("ring");
+  ring.style.transition = "none"; ring.style.strokeDashoffset = 0;
+  $("countNum").textContent = num(CONFIG.countdownSeconds);
+  if (navigator.vibrate) navigator.vibrate([300,150,300]);
+  requestAnimationFrame(() => { ring.style.transition = "stroke-dashoffset 1s linear"; });
+  cdTimer = setInterval(() => {
+    const a = S.alerts.find(x => x.type === "fall" && x.status === "pending");
+    if (!a) { stopCountdown(); return; }
+    a.left--;
+    $("countNum").textContent = num(Math.max(a.left,0));
+    ring.style.strokeDashoffset = C * (1 - a.left / CONFIG.countdownSeconds);
+    if (a.left <= 0) confirmFall(); else renderRight();
+  }, 1000);
+}
+function stopCountdown(){ if (cdTimer) clearInterval(cdTimer); cdTimer = null; }
+
+function renderWorker(){
+  const m = mi(), s = 1 - m, on = S.conn === "on";
+  document.documentElement.lang = lang;
+  document.querySelectorAll("#worker [data-m]").forEach(el => { const t = T[el.dataset.m]; if (t) el.textContent = t[m]; });
+  document.querySelectorAll("#worker [data-s]").forEach(el => { const t = T[el.dataset.s]; if (t) el.textContent = t[s]; });
+  document.querySelectorAll("#worker [data-num]").forEach(el => el.textContent = num(el.dataset.num));
+  document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
+
+  const w = $("worker");
+  w.classList.toggle("off", S.conn !== "on"); w.classList.toggle("busy", S.conn === "busy");
+  const ck = S.conn === "busy" ? "connecting" : on ? "connected" : "disconnected";
+  $("connMain").textContent = tx(ck,m); $("connSub").textContent = tx(ck,s);
+  $("btnConn").textContent = tx(on ? "disconnectBtn" : "connectBtn", m);
+  const pk = S.conn === "busy" ? "connecting" : "connectBtn";
+  $("pairMain").textContent = tx(pk, m); $("pairSub").textContent = tx(pk, s);
+  $("statusIcon").innerHTML = on ? ICON_OK : ICON_OFF;
+  $("statusMain").textContent = tx(on ? "safe" : "noData", m);
+  $("statusSub").textContent  = tx(on ? "safe" : "noData", s);
+  $("statusNote").textContent = on ? tx("normal",m)+" · "+tx("normal",s) : tx("connectFirst",m)+" · "+tx("connectFirst",s);
+  $("vAir").textContent  = on ? num(S.air.toFixed(1))+"°C" : "--";
+  $("vHum").textContent  = on ? num(Math.round(S.hum))+"%" : "--";
+  $("vSkin").textContent = on ? num(S.skin.toFixed(1))+"°C" : "--";
+  $("tSkin").classList.toggle("warn", on && S.skin >= 37.5);
+  $("vHeat").textContent = num(S.skin.toFixed(1))+"°C";
+  $("heatSrc").textContent = tx(S.real ? "live" : "simulated", m);
+  const hrHigh = S.hr >= HR_LIMIT;
+  $("hrNoteM").textContent = tx(hrHigh ? "hrAbove" : "hrOk", m) + " (" + num(HR_LIMIT) + ")";
+  $("hrNoteS").textContent = tx(hrHigh ? "hrAbove" : "hrOk", s);
+  $("vHr").textContent = on ? num(Math.round(S.hr))+" bpm" : "--";
+  $("vHrLim").textContent = (lang === "bn" ? "সীমা " : "limit ") + num(HR_LIMIT) + (S.real && !S.realHr ? (lang === "bn" ? " · সিমুলেটেড" : " · simulated") : "");
+  $("tHr").classList.toggle("warn", on && S.hr >= HR_LIMIT);
+  $("vHrHeat").textContent = num(Math.round(S.hr));
+  const z = S.alerts.find(a => a.type === "zone" && a.status !== "resolved");
+  $("zoneComing").hidden = !(z && z.status === "ack");
+  $("zoneTold").hidden = !!(z && z.status === "ack");
+  $("zoneTimer").textContent = z ? num(mmss(since(z.t))) : num("0:00");
+
+  const heat = S.alerts.find(a => a.type === "heat" && a.status !== "resolved");
+  $("heatSeen").hidden = !(heat && heat.status === "ack");
+  $("heatDizzy").hidden = !!(heat && heat.status === "ack");
+
+  const coming = openAlerts().some(a => a.status === "ack" && (a.type !== "heat" || a.asked));
+  $("wHelp").classList.toggle("coming", coming);
+  $("helpIcon").innerHTML = coming ? ICON_RUN : ICON_BELL;
+  $("helpMain").textContent = tx(coming ? "helpSent" : "alertSent", m);
+  $("helpSub").textContent  = tx(coming ? "helpSent" : "alertSent", s);
+  $("helpNote").textContent = tx(coming ? "comingNote" : "waitNote", m);
+  $("helpNote2").textContent= tx(coming ? "comingNote" : "waitNote", s);
+}
+
+/* ======================================================================
+   SUPERVISOR + EHS  (right panel)
+   ====================================================================== */
+const ic = (p, s=18, c="currentColor", w=2) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const P = {
+  warn:'<path d="M12 3 2 20h20z"/><path d="M12 10v4"/><path d="M12 17h.01"/>',
+  temp:'<path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"/>',
+  sos:'<circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+  pin:'<path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  user:'<circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14a6 6 0 0 1 3.5 6"/>',
+  phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
+  map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14"/><path d="M15 6v14"/>',
+  list:'<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  helmet:'<path d="M3 17h18"/><path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 9V5"/><path d="M9 6.5v3"/><path d="M15 6.5v3"/>',
+  shield:'<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/>',
+  ban:'<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+  heart:'<path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z"/>'
+};
+
+function liveStatus(){
+  if (S.conn !== "on") return { cls:"off", label:"Offline" };
+  const a = activeAlerts().concat(S.alerts.filter(x=>x.status==="pending"));
+  if (a.some(x => x.type !== "heat")) return { cls:"alert", label:"Alert" };
+  if (a.some(x => x.type === "heat")) return { cls:"warm", label:"Heat risk" };
+  return { cls:"ok", label:"OK" };
+}
+
+/* ======================================================================
+   HIGHWAY SITE MAP — shared by the supervisor app and EHS
+   ====================================================================== */
+const HW_ROAD = "M -30 300 C 110 240, 190 165, 250 120 S 360 30, 440 0";
+const HW_SERVICE = "M -30 262 C 100 200, 175 128, 232 86 S 340 -4, 420 -30";
+const HW_TREES = (() => {
+  let out = "", seed = 7;
+  const r = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  for (let i = 0; i < 70; i++) {
+    const x = r() * 400, y = r() * 310, rad = 5 + r() * 6, c = r() > .5 ? "#5E8C3A" : "#6E9C45";
+    if (Math.abs(y - (300 - (x + 30) * 0.78)) < 70) continue;   // keep trees off the road
+    out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}" fill="${c}" opacity=".9"/>`;
+  }
+  return out;
+})();
+// simulated workers on the same stretch (EHS body temperature map)
+const HW_SIM = [[48,270,36.0],[82,252,35.8],[120,198,37.1],[150,206,36.2],[178,150,38.0],[214,176,35.9],[236,104,36.1],
+  [262,140,36.9],[288,88,35.7],[318,66,37.9],[338,96,36.3],[370,40,35.6],[384,72,36.8]];
+const HW_CREWS = [[60,262],[128,214],[196,160],[262,124]];
+
+function hwBase(id, heat, chainage){
+  return `<defs><linearGradient id="hg${id}" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#22C55E"/><stop offset=".3" stop-color="#FACC15"/><stop offset=".6" stop-color="#F97316"/><stop offset="1" stop-color="#DC2626"/></linearGradient>
+    <filter id="hb${id}" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter></defs>
+  <rect width="400" height="310" fill="#DCE6C6"/>
+  <path d="M0 0 H150 L95 110 L0 140Z" fill="#CFDDB0"/><path d="M270 190 L400 150 V310 H230Z" fill="#E6DFC8"/>
+  <path d="M300 215 h70 v40 h-70z M310 265 h45 v30 h-45z" fill="#D2C9AE"/><path d="M20 200 h50 v26 h-50z" fill="#C9C0A4"/>
+  ${HW_TREES}
+  <path d="${HW_SERVICE}" stroke="#B9B6AE" stroke-width="12" fill="none"/>
+  <path d="${HW_ROAD}" stroke="#7B7F86" stroke-width="58" fill="none"/>
+  <path d="${HW_ROAD}" stroke="#F4F3EF" stroke-width="2" fill="none" stroke-dasharray="10 9"/>
+  <path d="${HW_ROAD}" stroke="#F4F3EF" stroke-width="1.5" fill="none" transform="translate(0,-24)" opacity=".7"/>
+  <path d="${HW_ROAD}" stroke="#F4F3EF" stroke-width="1.5" fill="none" transform="translate(0,24)" opacity=".7"/>
+  ${heat ? `<path d="${HW_ROAD}" stroke="url(#hg${id})" stroke-width="120" fill="none" filter="url(#hb${id})" opacity=".78"/>` : ""}
+  ${chainage ? `<g font-size="10" font-weight="700" fill="#4B5160"><text x="18" y="292">CH 4+000</text><text x="150" y="232">CH 4+300</text><text x="268" y="168">CH 4+600</text><text x="334" y="104">CH 4+900</text></g>` : ""}`;
+}
+function hwCrewPin(x, y){
+  return `<g transform="translate(${x},${y})"><path d="M0 0 C-4 -8 -15 -14 -15 -26 A15 15 0 1 1 15 -26 C15 -14 4 -8 0 0Z" fill="#B91C1C" stroke="#fff" stroke-width="2"/>
+    <circle cx="0" cy="-26" r="10" fill="#fff"/><circle cx="0" cy="-29" r="3.4" fill="#16181D"/><path d="M-6 -19 a6 6 0 0 1 12 0z" fill="#16181D"/></g>`;
+}
+function hwDot(x, y, c, label, o = {}){
+  const w = Math.max(34, label.length * 5.8 + 10), ly = o.live ? 13 : 10;
+  return `<g transform="translate(${x},${y})">
+    ${o.alert ? `<circle class="hwp" r="12" fill="none" stroke="#B91C1C" stroke-width="3"/>` : ""}
+    ${o.live ? `<circle r="15" fill="${c}" opacity=".22"/>` : ""}
+    <circle r="${o.live ? 9 : 7}" fill="${c}" stroke="#fff" stroke-width="2.5"/>
+    <rect x="${-w / 2}" y="${ly}" width="${w}" height="15" rx="5" fill="${o.alert ? "#B91C1C" : "#16181D"}"/>
+    <text x="0" y="${ly + 11}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">${label}</text></g>`;
+}
+function hwYou(x, y){
+  return `<g transform="translate(${x},${y})"><circle r="16" fill="#1D4ED8" opacity=".18"/><circle r="8" fill="#1D4ED8" stroke="#fff" stroke-width="3"/>
+    <rect x="-15" y="12" width="30" height="15" rx="5" fill="#1D4ED8"/><text x="0" y="23" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">You</text></g>`;
+}
+function hwMap(o, overlays){
+  return `<div class="hw ${o.cls || ""}" ${o.attrs || ""}><svg viewBox="0 0 400 310" preserveAspectRatio="${o.align || "xMidYMid"} slice" role="img" aria-label="${o.label || "Highway site map"}">
+    ${hwBase(o.id, !!o.heat, o.chainage !== false)}${o.body || ""}</svg>${overlays || ""}</div>`;
+}
+const skinCol = v => v >= 37.5 ? "#B91C1C" : v >= 36.5 ? "#F59E0B" : "#15803D";
+function liveAlertOn(){ return S.alerts.some(a => a.status !== "resolved" && a.type !== "heat"); }
+function livePin(){
+  const on = S.conn === "on";
+  const x = S.inZone ? ZONE.inX : LIVE.hx, y = S.inZone ? ZONE.inY : LIVE.hy;
+  const label = !on ? (S.lastSeen ? "Ahmad · last seen " + clock(S.lastSeen.t) : "Ahmad · offline") : S.inZone ? "Ahmad · NO PERMIT" : `Ahmad ${S.skin.toFixed(1)}°`;
+  return hwDot(x, y, !on ? "#9CA3AF" : S.inZone ? "#B91C1C" : skinCol(S.skin), label, { live:true, alert: on && liveAlertOn() });
+}
+/* High-risk zone drawn on the highway map, with the workers tagged on its permit */
+function hwZone(){
+  const z = ZONE, hot = S.inZone;
+  return `<g><rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="8" fill="${hot ? "rgba(185,28,28,.28)" : "rgba(185,28,28,.16)"}" stroke="#B91C1C" stroke-width="2.5" stroke-dasharray="7 5"/>
+    <rect x="${z.x + 4}" y="${z.y + 4}" width="94" height="15" rx="5" fill="#B91C1C"/>
+    <text x="${z.x + 51}" y="${z.y + 15}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">${z.ptw} · ZONE</text></g>
+    ${z.auth.map(a => hwDot(a.x, a.y, "#15803D", "✓")).join("")}`;
+}
+const ZONE_KEY = `<div class="keyrow"><span><i style="background:rgba(185,28,28,.25);border:2px dashed #B91C1C;border-radius:3px;width:14px;height:10px"></i>High-risk zone (PTW)</span><span><i style="background:#15803D"></i>On the permit</span><span><i style="background:#B91C1C"></i>Not authorised · alarm</span></div>`;
+function crewMapBody(focus){
+  let body = hwZone() + CREW.map(c => hwDot(c.hx, c.hy, skinCol(c.skin), `${c.name.split(" ")[0]} ${c.skin.toFixed(1)}°`)).join("");
+  if (focus) body += `<path d="M 318 236 Q 236 286 150 258" stroke="#1D4ED8" stroke-width="3" fill="none" stroke-dasharray="7 6"/>` + hwYou(322, 232);
+  return body + livePin();
+}
+const ICON_PERSON = (c) => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>`;
+const ICON_SUN = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>`;
+const BODY_KEY = `<div class="keyrow"><span><i style="background:#15803D"></i>Below 36.5°C</span><span><i style="background:#F59E0B"></i>36.5–37.5°C</span><span><i style="background:#B91C1C"></i>Above 37.5°C</span><span><b class="tag live">LIVE</b> Ahmad's helmet</span></div>`;
+
+function alertCard(a){
+  const T2 = TYPES[a.type];
+  const amber = T2.tone === "amber";
+  const cls = a.status === "pending" ? "pending" : a.status === "ack" ? "ack" : (amber && !a.asked ? "amber" : "");
+  const icon = a.type === "heat" ? P.temp : a.type === "sos" ? P.sos : a.type === "zone" ? P.ban : P.warn;
+  const title = a.status === "pending" ? "Possible fall" : (a.type === "heat" && a.asked ? "Heat · asked for help" : T2.title);
+  let chip, notes = "", acts = "";
+  if (a.status === "pending") {
+    chip = `<span class="chip chk">Confirming</span>`;
+    notes = `<div class="note warn">Helmet detected a fall. Alert confirms in ${a.left} s unless help is sent sooner.</div>`;
+  } else {
+    chip = a.status === "new" ? `<span class="chip new">New · ${mmss(since(a.t))}</span>` : `<span class="chip ack">Acknowledged</span>`;
+    if (a.type === "heat") notes += `<div class="note warn">Skin ${S.skin.toFixed(1)}°C · heart rate ${Math.round(S.hr)} bpm (limit ${HR_LIMIT}) · air ${S.air.toFixed(1)}°C · ${S.real ? "live helmet" : "simulated"}</div>`;
+    if (a.type === "zone" && a.status === "new") notes += `<div class="note esc">Not on ${ZONE.ptw} · clip is beeping · worker told to leave</div>`;
+    if (a.type === "zone") notes += `<div class="note warn">Inside the zone for ${mmss(since(a.t))} · heart rate ${Math.round(S.hr)} bpm</div>`;
+    if (a.resting) notes += `<div class="note ok">Worker tapped "I'm resting now" at ${clock(a.resting)}</div>`;
+    if (a.type === "sos") notes += `<div class="note esc">Worker pressed SOS on the helmet</div>`;
+    if (a.status === "new" && since(a.t) >= CONFIG.escalateSeconds) notes += `<div class="note esc">Not acknowledged in 2 min · escalated to EHS</div>`;
+    if (a.status === "ack") notes += `<div class="note ok">You acknowledged in ${mmss((a.ackAt - a.t)/1000)} · worker has been told</div>`;
+    acts = `<div class="acts">
+      ${a.status === "new"
+        ? `<button type="button" class="sbtn primary" data-act="ack" data-id="${a.id}">${a.type==="heat" && !a.asked ? "Acknowledge" : "On my way"}</button>`
+        : `<button type="button" class="sbtn dark" data-act="resolve" data-id="${a.id}">Mark resolved</button>`}
+      <button type="button" class="sbtn" data-act="info">Emergency info</button>
+      <a class="sbtn icon" href="tel:${CONFIG.supervisorPhone}" aria-label="Call Ahmad">${ic(P.phone,22)}</a>
+    </div>`;
+  }
+  return `<article class="acard ${cls} ${a.type === "heat" ? "heat" : ""} ${a.status==="new" && since(a.t) < 4 ? "flash" : ""}">
+    <div class="arow">
+      <div class="aic">${ic(icon,24,"#fff",2.4)}</div>
+      <div class="att"><b>${title}</b><span>Ahmad Razak · ${LIVE.id} <span class="tag live">LIVE</span></span></div>
+      ${chip}
+    </div>
+    <div class="ameta">
+      <div>${ic(P.pin,16)} ${a.type === "zone" ? `${ZONE.ptw} zone · ${ZONE.work} · ${ZONE.place}` : LIVE.zone + " · helmet GPS"}</div>
+      <div>${ic(P.user,16)} ${LIVE.role} · ${LIVE.co}</div>
+      <div>${ic(P.helmet,16)} Last helmet location · ${lastLoc().where} · ${lastLoc().when}</div>
+    </div>
+    ${a.type !== "heat" || a.asked ? hwMap({ id:"m" + a.id, cls:"mini", align:"xMidYMax", chainage:false, body:crewMapBody(false), attrs:'data-act="showmap"', label:"Worker location on the highway" }, `<span class="hw-tap">${ic(P.map,14)} Show on map</span>`) : ""}
+    ${notes}${acts}
+  </article>`;
+}
+
+function offCard(){
+  const o = S.helmetOff;
+  if (!o || o.status === "resolved") return "";
+  const chip = o.status === "new" ? `<span class="chip chk">New · ${mmss(since(o.t))}</span>` : `<span class="chip ack">Checking</span>`;
+  return `<article class="acard amber ${o.status === "new" && since(o.t) < 4 ? "flash" : ""}">
+    <div class="arow">
+      <div class="aic" style="background:var(--amber)">${ic(P.helmet,24,"#fff",2.4)}</div>
+      <div class="att"><b>Helmet off · not a fall</b><span>${OFF_W.name} · ${OFF_W.id} <span class="tag sim">SIM</span></span></div>
+      ${chip}
+    </div>
+    <div class="ameta">
+      <div>${ic(P.pin,16)} Last helmet location · ${OFF_W.zone} · ${clock(o.t)}</div>
+      <div>${ic(P.user,16)} ${OFF_W.role} · Subcon A</div>
+    </div>
+    ${hwMap({ id:"off", cls:"mini", align:"xMidYMax", chainage:false, body: hwDot(OFF_W.hx, OFF_W.hy, "#9CA3AF", "Last seen " + clock(o.t)), label:"Last helmet location" }, `<span class="hw-tap">${ic(P.pin,14)} Last location</span>`)}
+    <div class="note warn">Impact detected, but the heart-rate sensor lost skin contact: the helmet was dropped or taken off. No fall alert was sent.</div>
+    ${o.status === "ack" ? `<div class="note ok">Crew asked to check at ${clock(o.ackAt)}</div>` : ""}
+    <div class="acts">
+      ${o.status === "new"
+        ? `<button type="button" class="sbtn primary" data-act="offack">Ask crew to check</button>`
+        : `<button type="button" class="sbtn dark" data-act="offresolve">Helmet back on</button>`}
+      <a class="sbtn icon" href="tel:${CONFIG.supervisorPhone}" aria-label="Call Bikash">${ic(P.phone,22)}</a>
+    </div>
+  </article>`;
+}
+function supAlerts(){
+  const list = openAlerts().slice().sort((a,b) => b.t - a.t);
+  const off = offCard();
+  const online = CREW.length + (S.conn === "on" ? 1 : 0);
+  return `
+    <div class="stats">
+      <div class="stat ${activeAlerts().length ? "hot" : ""}"><b>${activeAlerts().length}</b><span>Active alerts</span></div>
+      <div class="stat"><b>${online}/${CREW.length+1}</b><span>Helmets online</span></div>
+      <div class="stat good"><b>${S.resolved}</b><span>Resolved today</span></div>
+    </div>
+    <span class="sec">ACTIVE ALERTS</span>
+    ${off}
+    ${list.length ? list.map(alertCard).join("") : off ? "" : `
+      <div class="clear"><div class="ok">${ic(P.check,30,"#15803D",2.6)}</div>
+        <span class="main">All clear</span><span class="sub">${online} of ${CREW.length+1} helmets reporting normally</span></div>`}
+    ${S.conn !== "on" ? `<div class="note warn">Ahmad Razak's helmet is offline. Ask him to reconnect.<br>Last helmet location: ${lastLoc().where} · ${lastLoc().when}</div>` : ""}`;
+}
+
+function supMap(){
+  const focus = S.mapFocus;
+  const a = openAlerts().find(x => x.status !== "pending" && x.type !== "heat") || openAlerts().find(x => x.status !== "pending");
+  const hot = CREW.filter(c => c.skin >= 37.5).length + (S.conn === "on" && S.skin >= 37.5 ? 1 : 0);
+  return `<span class="sec">YOUR CREW · BODY TEMPERATURE</span>
+    ${focus ? `<div class="focus">
+      <div class="arow"><div class="aic">${ic(a ? (a.type === "heat" ? P.temp : a.type === "sos" ? P.sos : P.warn) : P.user, 24, "#fff", 2.4)}</div>
+        <div class="att"><b>${a ? TYPES[a.type].title : "Ahmad Razak"}</b><span>Ahmad Razak · ${LIVE.zone}</span></div></div>
+      <div class="ameta"><div>${ic(P.pin,16)} About 350 m from you · follow the blue line</div></div>
+      <div class="acts"><a class="sbtn primary" href="tel:${CONFIG.supervisorPhone}">${ic(P.phone,18)}&nbsp; Call Ahmad</a><button type="button" class="sbtn" data-act="backalert">Back to alerts</button></div>
+    </div>` : ""}
+    ${hwMap({ id:"S", chainage:false, body:crewMapBody(focus), label:"Crew body temperature on the highway" },
+      `<div class="hw-badge">${ICON_PERSON(hot ? "#B91C1C" : "#16181D")}<div><b class="${hot ? "r" : ""}">${hot} of ${CREW.length + 1}</b><span>above 37.5°C</span></div></div><div class="hw-ctrls"><span>+</span><span>−</span></div>`)}
+    ${BODY_KEY}
+    ${ZONE_KEY}
+    <div class="note ok" style="font-weight:500">Each pin is one worker's own skin temperature. Locations are simulated for this demonstration. Only workers on ${ZONE.ptw} may enter the red zone.</div>`;
+}
+function workerRow(name, sub, skin, st, live, last){
+  return `<div class="wk"><div class="av">${initials(name)}</div>
+    <div class="att"><b>${name} ${live ? `<span class="tag live">LIVE</span>` : `<span class="tag sim">SIM</span>`}</b><span>${sub}</span>${last ? `<span>${ic(P.pin,12)} Last location · ${last}</span>` : ""}</div>
+    <div class="temp">${skin}<small><span class="st ${st.cls}">${st.label}</span></small></div></div>`;
+}
+function supWorkers(){
+  const st = liveStatus();
+  return `<span class="sec">YOUR CREW · SUBCON A</span>
+    ${workerRow(LIVE.name, `${LIVE.role} · ${S.inZone ? ZONE.ptw + " zone" : "CH 4+300"} · ♥ ${S.conn==="on" ? Math.round(S.hr) + " bpm" : "--"}`, S.conn==="on" ? S.skin.toFixed(1)+"°C" : "--", st, true, lastLoc().where + " · " + lastLoc().when)}
+    ${CREW.map(c => { const off = c.id === OFF_W.id && S.helmetOff && S.helmetOff.status !== "resolved";
+      return workerRow(c.name, `${c.role} · ${c.zone} · ♥ ${off ? "--" : c.hr + " bpm"}`, off ? "--" : c.skin.toFixed(1)+"°C", off ? {cls:"warm",label:"Helmet off"} : {cls:"ok",label:"OK"}, false, c.zone + (off ? " · last seen " + clock(S.helmetOff.t) : " · Live")); }).join("")}
+    <div class="note ok" style="font-weight:500">Skin temperature and heart rate are measured per worker, not per area.</div>`;
+}
+function logList(ehs){
+  const rows = S.log.filter(l => ehs || !l.ehsOnly).slice(0, ehs ? 9 : 12);
+  return `<div class="log">${rows.map(l => `<div><time>${clock(l.t)}</time><span class="${l.cls}">${l.text}</span></div>`).join("")}</div>`;
+}
+function supLog(){ return `<span class="sec">TODAY · YOUR CREW</span>${logList(false)}`; }
+
+function sheet(){
+  if (!S.sheet) return "";
+  return `<div class="scrim" data-act="close"><div class="sheet" role="dialog" aria-label="Emergency info">
+    <span class="grab"></span>
+    <div class="arow"><div class="av" style="width:56px;height:56px;font-size:18px">AR</div>
+      <div class="att"><b style="color:var(--ink)">Ahmad Razak</b><span>${LIVE.id} · ${LIVE.role} · ${LIVE.co}</span></div></div>
+    <dl class="kv">
+      <div><dt>Location</dt><dd>${LIVE.zone}</dd></div>
+      <div><dt>Emergency contact</dt><dd>${LIVE.contact}</dd></div>
+      <div><dt>Blood type</dt><dd>${LIVE.blood}</dd></div>
+      <div><dt>Medical notes</dt><dd>${LIVE.medical}</dd></div>
+      <div><dt>ID</dt><dd>${LIVE.doc}</dd></div>
+    </dl>
+    <button type="button" class="sbtn dark" data-act="showmap">${ic(P.map,20)}&nbsp; Show on map</button>
+    <a class="sbtn primary" href="tel:${CONFIG.supervisorPhone}">${ic(P.phone,20)}&nbsp; Call emergency contact</a>
+    <button type="button" class="sbtn" data-act="close">Close</button>
+  </div></div>`;
+}
+
+function supervisor(){
+  const views = { alerts:supAlerts, map:supMap, workers:supWorkers, log:supLog };
+  const n = activeAlerts().length;
+  const tab = (k, label, p) => `<button type="button" data-tab="${k}" ${S.supTab===k ? 'aria-current="page"' : ""}>${ic(p,22)}${label}${k==="alerts" && n ? `<span class="nb">${n}</span>` : ""}</button>`;
+  return `<div class="s-scroll">
+      <div class="top">
+        <div class="brand"><div class="logo">${ic(P.helmet,26,"#F59E0B")}</div>
+          <div><span class="main">Supervisor</span><span class="sub">Gamuda · Highway Package</span></div></div>
+        <div class="bell">${ic(P.bell,24)}${n ? `<b>${n}</b>` : ""}</div>
+      </div>
+      <div class="crew">${ic(P.users,22)}<div><span class="main">Faizal · Subcon A (Structure)</span><span class="sub">CH 4+000 – 5+000 · ${CREW.length+1} workers in your crew</span></div></div>
+      ${views[S.supTab]()}
+    </div>
+    <nav class="nav">${tab("alerts","Alerts",P.bell)}${tab("map","Site map",P.map)}${tab("workers","Workers",P.users)}${tab("log","Log",P.list)}</nav>
+    ${sheet()}
+    ${S.toast ? `<div class="toast" role="status">${S.toast}</div>` : ""}`;
+}
+
+/* ======================================================================
+   EHS CONTROL CENTRE — 200 simulated workers + Ahmad's live helmet
+   (content from office_climate_demo.html, restyled to match the app)
+   ====================================================================== */
+const EHS_TOTAL = 200;
+const EHS_T0 = Date.now();
+const EHS_ZONES = ["CH 4+000 – 4+250","CH 4+250 – 4+500","CH 4+500 – 4+750","CH 4+750 – 5+000","Interchange ramp","Batching plant","Casting yard","Site office"];
+const EHS_NAMES = ["Ahmad Rahman","Lee Chee Keong","Ravi Kumar","Siti Nur Aisyah","Tan Wei Sheng","Mohd Faizal","Carlos Mendez","Nur Izzati","Arun Kumar","Ali Hassan","Daniel Lim","Nur Farah","Rajesh Nair","Aminuddin Yusof","Samir Khan","Wong Mei Ling","Rahim Uddin","Kamal Hossain","Nguyen Van Long","Raju Shrestha","Aung Kyaw","Mizanur Rahman","Hafiz Ismail","Dinesh Raj"];
+const EHS_COS = ["Subcon A (Structure)","Subcon B (M&E)","Subcon C (Mechanical)","Subcon D (Civil)","Gamuda"];
+const rng = i => { const v = Math.sin(i * 25.374 + 8.8) * 10000; return v - Math.floor(v); };
+
+const EHS_WORKERS = Array.from({ length: EHS_TOTAL }, (_, i) => {
+  const k = (i * 37) % EHS_TOTAL;     // spreads the conditions across the list
+  const cond = k < 178 ? "Normal" : k < 190 ? "Heat alert" : k < 193 ? "Responding" : k < 198 ? "Resting" : "Offline";
+  const n = String(i + 1).padStart(3, "0");
+  return {
+    id: "W-" + n, helmet: "SHC-" + n, name: EHS_NAMES[i % EHS_NAMES.length],
+    co: EHS_COS[Math.floor(rng(i + 3) * EHS_COS.length)],
+    zone: EHS_ZONES[Math.floor(rng(i + 51) * EHS_ZONES.length)], cond,
+    skin: +(35.1 + rng(i + 7) * 1.3 + (cond === "Heat alert" ? 1.6 : 0)).toFixed(1),
+    ambient: +(30.6 + rng(i + 11) * 4.6).toFixed(1),
+    hr: cond === "Offline" ? null : Math.round(82 + rng(i + 29) * 26 + (cond === "Heat alert" ? 34 : cond === "Resting" ? 10 : 0)),
+    battery: cond === "Offline" ? 0 : Math.round(25 + rng(i + 19) * 75),
+    mins: 1 + Math.floor(rng(i + 23) * 8),
+    x: 4 + rng(i + 101) * 92, y: 8 + rng(i + 211) * 86
+  };
+});
+// Faizal's crew keeps the same IDs and names in the supervisor app
+[[22, LIVE.name, "CH 4+250 – 4+500", 35.4], [30, "Suresh Kumar", "CH 4+750 – 5+000", 35.1], [49, "Mohd Faiz Hakim", "CH 4+500 – 4+750", 35.6],
+ [57, "Bikash Tamang", "CH 4+000 – 4+250", 36.0], [61, "Lee Jun Hao", "CH 4+750 – 5+000", 35.3]]
+  .forEach(([i, name, zone, skin]) => Object.assign(EHS_WORKERS[i], { name, zone, skin, co: "Subcon A (Structure)", cond: "Normal" }));
+Object.assign(EHS_WORKERS[22], { live: true, x: 30, y: 46 });
+
+const SIM_ALERTS = [
+  { m: 6,  type: "Fall detected",   helmet: "SHC-041", zone: "CH 4+620", sev: "High",     status: "Supervisor responding" },
+  { m: 11, type: "SOS pressed",     helmet: "SHC-118", zone: "Interchange ramp",   sev: "Critical", status: "Escalated to EHS" },
+  { m: 14, type: "High skin temp",  helmet: "SHC-147", zone: "Casting yard",      sev: "Medium",   status: "Monitoring" },
+  { m: 19, type: "Low battery",     helmet: "SHC-066", zone: "Batching plant",       sev: "Low",      status: "Pending" },
+  { m: 24, type: "High skin temp",  helmet: "SHC-189", zone: "CH 4+880", sev: "Medium",   status: "Monitoring" },
+  { m: 38, type: "High skin temp",  helmet: "SHC-058", zone: "CH 4+050", sev: "Medium",   status: "Resolved" },
+  { m: 61, type: "Helmet offline",  helmet: "SHC-173", zone: "Site office", sev: "Low",      status: "Resolved" }
+];
+
+const CLIMATE_ZONES = [
+  { zone: "CH 4+000 – 4+250", short: "4+000", t: 33.1, rh: 68, online: 36 },
+  { zone: "CH 4+250 – 4+500", short: "4+250", t: 34.2, rh: 65, online: 33 },
+  { zone: "CH 4+500 – 4+750", short: "4+500", t: 35.4, rh: 63, online: 31 },
+  { zone: "CH 4+750 – 5+000", short: "4+750", t: 35.1, rh: 62, online: 29 },
+  { zone: "Batching plant",   short: "Batching", t: 32.1, rh: 67, online: 32 },
+  { zone: "Casting yard",     short: "Casting",  t: 31.9, rh: 75, online: 28 }
+];
+const CLIMATE_SHIFT = [{ k: "08:00", t: 28.4, rh: 82 }, { k: "09:00", t: 29.7, rh: 78 }, { k: "10:00", t: 30.6, rh: 73 }, { k: "11:00", t: 31.8, rh: 70 }, { k: "12:00", t: 33.2, rh: 65 },
+  { k: "13:00", t: 34.4, rh: 61 }, { k: "14:00", t: 35.1, rh: 60 }, { k: "15:00", t: 34.3, rh: 63 }, { k: "16:00", t: 32.8, rh: 68 }, { k: "17:00", t: 31.0, rh: 73 }];
+const CLIMATE_WEEK = [{ k: "Mon", t: 31.1, rh: 72 }, { k: "Tue", t: 32.7, rh: 70 }, { k: "Wed", t: 33.4, rh: 68 }, { k: "Thu", t: 34.9, rh: 64 },
+  { k: "Fri", t: 33.8, rh: 69 }, { k: "Sat", t: 32.4, rh: 75 }, { k: "Sun", t: 31.7, rh: 73 }];
+
+/* ---------- live helmet merged into the register ---------- */
+function liveCond() {
+  const st = liveStatus();
+  if (st.cls === "off") return "Offline";
+  if (st.cls === "alert") return activeAlerts().some(a => a.status === "ack" && a.type !== "heat") ? "Responding" : "Alert";
+  if (st.cls === "warm") return "Heat alert";
+  return "Normal";
+}
+function ehsWorkers() {
+  return EHS_WORKERS.map(w => w.live
+    ? Object.assign({}, w, { cond: liveCond(), skin: S.conn === "on" ? +S.skin.toFixed(1) : null, hr: S.conn === "on" ? Math.round(S.hr) : null, ambient: S.conn === "on" ? +S.air.toFixed(1) : null, battery: S.conn === "on" ? 82 : 0, mins: 0,
+        zone: S.inZone ? ZONE.ptw + " zone (no permit)" : w.zone, lastLoc: lastLoc().where + " · " + lastLoc().when })
+    : w);
+}
+function ehsAlerts() {
+  const live = S.alerts.map(a => ({
+    t: a.t, live: true, helmet: LIVE.helmet, zone: a.type === "zone" ? ZONE.ptw + " zone · " + ZONE.place : "CH 4+300 · Eastbound",
+    type: a.status === "pending" ? "Possible fall" : TYPES[a.type].title,
+    sev: a.type === "sos" || a.type === "zone" ? "Critical" : a.type === "fall" ? "High" : "Medium",
+    status: a.status === "pending" ? "Confirming" : a.status === "resolved" ? "Resolved" : a.status === "ack" ? "Supervisor responding"
+      : since(a.t) >= CONFIG.escalateSeconds ? "Escalated to EHS" : "Waiting for supervisor"
+  }));
+  const sim = SIM_ALERTS.map(a => Object.assign({ t: EHS_T0 - a.m * 60e3 }, a));
+  const o = S.helmetOff;
+  if (o) sim.push({ t: o.t, helmet: OFF_W.helmet, zone: "Last seen " + OFF_W.zone + " · " + clock(o.t), type: "Helmet off (not a fall)", sev: "Low",
+    status: o.status === "resolved" ? "Resolved" : o.status === "ack" ? "Supervisor responding" : "Waiting for supervisor" });
+  return live.concat(sim).sort((a, b) => b.t - a.t);
+}
+const isOpen = a => a.status !== "Resolved" && a.status !== "Confirming";
+
+/* ---------- small building blocks ---------- */
+const STCLS = { "Normal": "ok", "Heat alert": "warm", "Alert": "alert", "Responding": "warm", "Resting": "blue", "Offline": "off",
+  "Critical": "alert", "High": "alert", "Medium": "warm", "Low": "off", "Resolved": "ok", "Supervisor responding": "blue",
+  "Monitoring": "warm", "Pending": "off", "Escalated to EHS": "alert", "Waiting for supervisor": "alert", "Confirming": "warm",
+  "Online": "ok", "Review recommended": "warm" };
+const pill = v => `<span class="st ${STCLS[v] || "off"}">${v}</span>`;
+const liveTag = `<span class="tag live">LIVE</span>`;
+const fmtT = v => v == null ? "--" : v.toFixed(1);
+const ago = m => m === 0 ? "Live" : m + " min ago";
+const COLORS = { ok: "#15803D", warm: "#F59E0B", alert: "#B91C1C", blue: "#1D4ED8", off: "#9CA3AF" };
+const skinColor = v => v == null ? COLORS.off : v >= 37.5 ? COLORS.alert : v >= 36.5 ? COLORS.warm : COLORS.ok;
+const hrColor = v => v == null ? COLORS.off : v >= 140 ? COLORS.alert : v >= 120 ? "#B45309" : "#16181D";
+
+function searchBox(key, placeholder) {
+  return `<input class="search" type="search" data-search="${key}" placeholder="${placeholder}" value="${(S.search[key] || "").replace(/"/g, "&quot;")}" aria-label="${placeholder}">`;
+}
+function filterWorkers(list, key) {
+  const f = (S.search[key] || "").toLowerCase().trim();
+  return f ? list.filter(w => [w.id, w.helmet, w.name, w.zone, w.co, w.cond].some(x => String(x).toLowerCase().includes(f))) : list;
+}
+function workerTable(list, limit) {
+  const rows = list.slice(0, limit).map(w => `<tr class="${w.live ? "liverow" : ""}">
+      <td class="mono">${w.id}</td><td>${w.name} ${w.live ? liveTag : ""}</td><td class="mono">${w.helmet}</td><td>${w.zone}</td>
+      <td>${pill(w.cond)}</td><td class="mono"><b style="color:${skinColor(w.skin)}">${fmtT(w.skin)}</b></td><td class="mono"><b style="color:${hrColor(w.hr)}">${w.hr == null ? "--" : w.hr}</b></td><td class="mono">${fmtT(w.ambient)}</td><td>${w.cond === "Offline" ? "—" : ago(w.mins)}</td></tr>`).join("");
+  return `<div class="tblwrap"><table class="tbl"><thead><tr><th>Worker ID</th><th>Name</th><th>Helmet</th><th>Zone</th><th>Condition</th><th>Skin °C</th><th>Heart rate</th><th>Ambient °C</th><th>Last update</th></tr></thead>
+    <tbody>${rows || `<tr><td colspan="9">No workers match your search.</td></tr>`}</tbody></table></div>`;
+}
+function alertTable(list, compact) {
+  if (compact) return `<div class="tblwrap"><table class="tbl"><thead><tr><th>Time</th><th>Alert</th><th>Helmet</th><th>Status</th></tr></thead><tbody>
+    ${list.map(a => `<tr class="${a.live ? "liverow" : ""}"><td class="mono">${clock(a.t)}</td><td><b>${a.type}</b> ${a.live ? liveTag : ""}</td><td class="mono">${a.helmet}</td><td>${pill(a.status)}</td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="tblwrap"><table class="tbl"><thead><tr><th>Time</th><th>Alert</th><th>Helmet</th><th>Location</th><th>Severity</th><th>Status</th></tr></thead><tbody>
+    ${list.map(a => `<tr class="${a.live ? "liverow" : ""}"><td class="mono">${clock(a.t)}</td><td><b>${a.type}</b> ${a.live ? liveTag : ""}</td><td class="mono">${a.helmet}</td>
+      <td>${a.zone}</td><td>${pill(a.sev)}</td><td>${pill(a.status)}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function donut(parts, total, label) {
+  let acc = 0;
+  const stops = parts.filter(p => p.n > 0).map(p => { const a = acc; acc += p.n / total * 100; return `${p.c} ${a}% ${acc}%`; }).join(",");
+  return `<div class="donut-wrap"><div class="donut" style="background:conic-gradient(${stops})"><div><b>${total}</b><small>${label}</small></div></div>
+    <div class="leg">${parts.map(p => `<span><i style="background:${p.c}"></i>${p.label} <b>${p.n}</b></span>`).join("")}</div></div>`;
+}
+function hbars(rows, max) {
+  return `<div class="hbars">${rows.map(r => `<div class="hbar"><span>${r.label}</span><span class="track"><span class="fill" style="width:${Math.max(4, r.n / max * 100)}%;background:${r.c}"></span></span><b>${r.n}</b></div>`).join("")}</div>`;
+}
+
+/* ---------- pages ---------- */
+function ehsDashboard(W, A) {
+  const online = W.filter(w => w.cond !== "Offline").length;
+  const open = A.filter(isOpen).length;
+  const attention = W.filter(w => ["Heat alert", "Alert", "Responding"].includes(w.cond)).length;
+  const amb = W.filter(w => w.ambient != null);
+  const avgAmb = (amb.reduce((s, w) => s + w.ambient, 0) / amb.length).toFixed(1);
+  const esc = A.filter(a => a.live && a.status === "Escalated to EHS");
+  const count = c => W.filter(w => w.cond === c).length;
+  const liveFalls = S.alerts.filter(a => a.type === "fall" && a.status !== "pending").length;
+  const liveSos = S.alerts.filter(a => a.type === "sos").length;
+  const liveHeat = S.alerts.filter(a => a.type === "heat").length;
+  const dots = W.map(w => w.live ? "" : `<span class="d" style="left:${w.x}%;top:${w.y}%;background:${w.cond === "Offline" ? COLORS.off : skinColor(w.skin)}"></span>`).join("");
+  const lw = W.find(w => w.live), lst = liveStatus();
+  const lpin = lst.cls === "alert" ? "alert" : lst.cls === "warm" ? "warm" : lst.cls === "off" ? "off" : "ok";
+  return `
+    ${S.inZone ? `<div class="note esc" style="display:flex;align-items:center;justify-content:space-between;gap:10px">Unauthorised entry · Ahmad Razak (W-023) is inside the ${ZONE.ptw} zone without a permit. <button type="button" class="act" data-ehs="zones">Open zone view</button></div>` : ""}
+    ${esc.length ? `<div class="note esc">Ahmad Razak's alert was not acknowledged by his supervisor within 2 minutes. It has been escalated to you.</div>` : ""}
+    <div class="kpis">
+      <div class="kpi"><span>Registered workers</span><b>${EHS_TOTAL}</b><small>1 live helmet</small></div>
+      <div class="kpi"><span>Helmets online</span><b>${online}</b><small>${EHS_TOTAL - online} offline · ${(online / EHS_TOTAL * 100).toFixed(1)}%</small></div>
+      <div class="kpi ${open ? "hot" : ""}"><span>Open alerts</span><b>${open}</b><small>Across all subcons</small></div>
+      <div class="kpi"><span>Avg ambient temp</span><b>${avgAmb}°C</b><small>From worker helmets</small></div>
+      <div class="kpi ${attention ? "warm" : ""}"><span>Need attention</span><b>${attention}</b><small>Heat, alert or responding</small></div>
+    </div>
+    <div class="rowg">
+      <div class="pnl"><div class="pnl-h"><h3>${ic(P.bell, 18)} Recent alerts</h3><button type="button" class="lnk" data-ehs="alerts">View all alerts</button></div>
+        ${alertTable(A.slice(0, 6), true)}</div>
+      <div class="pnl"><div class="pnl-h"><h3>${ic(P.warn, 18)} Alert types <small>today</small></h3></div>
+        ${hbars([{ label: "Fall", n: 6 + liveFalls, c: COLORS.alert }, { label: "SOS", n: 4 + liveSos, c: "#C2410C" }, { label: "High skin temp", n: 9 + liveHeat, c: COLORS.warm },
+          { label: "Zone entry", n: 2 + S.alerts.filter(a => a.type === "zone").length, c: "#7F1D1D" }, { label: "Low battery", n: 5, c: COLORS.off }], 16)}
+        ${donut([{ label: "Normal", n: count("Normal"), c: COLORS.ok }, { label: "Heat alert", n: count("Heat alert"), c: COLORS.warm }, { label: "Alert", n: count("Alert"), c: COLORS.alert },
+          { label: "Responding", n: count("Responding"), c: "#C2410C" }, { label: "Resting", n: count("Resting"), c: COLORS.blue }, { label: "Offline", n: count("Offline"), c: COLORS.off }], EHS_TOTAL, "workers")}
+      </div>
+    </div>
+    ${ehsMaps()}
+    <div class="pnl"><div class="pnl-h"><h3>${ic(P.users, 18)} Worker conditions <small>${EHS_TOTAL} workers</small></h3>
+        <div style="display:flex;gap:8px">${searchBox("dash", "Search name, ID or zone")}<button type="button" class="act light" data-ehs="workers">All workers</button></div></div>
+      ${workerTable(filterWorkers(W.slice().sort((a, b) => (b.live ? 1 : 0) - (a.live ? 1 : 0)), "dash"), 8)}
+    </div>`;
+}
+function ehsMaps() {
+  const on = S.conn === "on";
+  const total = HW_SIM.length + 1;
+  const hot = HW_SIM.filter(w => w[2] >= 37.5).length + (on && S.skin >= 37.5 ? 1 : 0);
+  const sims = HW_SIM.map(([x, y, t]) => hwDot(x, y, skinCol(t), t.toFixed(1) + "°")).join("");
+  return `<div class="pnl"><div class="pnl-h"><h3>${ic(P.temp, 18)} Heat on site <small>same stretch of highway, two views</small></h3>
+      <span class="mchip" style="background:var(--soft)">${ic(P.pin, 14)} Highway package · CH 4+000 – 5+000</span></div>
+    <div class="maps2">
+      <div class="mapcol"><div class="maptitle"><b>Site thermal map</b><span>Ambient temperature by area</span></div>
+        ${hwMap({ id: "EA", heat: true, body: HW_CREWS.map(([x, y]) => hwCrewPin(x, y)).join(""), label: "Highway coloured by ambient temperature" },
+          `<div class="hw-badge">${ICON_SUN}<div><b class="r">35°C</b><span>High heat exposure</span></div></div>
+           <div class="hw-leg">Heat exposure<div class="gbar"></div><div class="ticks"><span>Low</span><span>Medium</span><span>High</span></div></div>
+           <div class="hw-ctrls"><span>${ic(P.map, 15)}</span><span>+</span><span>−</span></div>`)}
+        <div class="keyrow"><span><i style="background:#B91C1C;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></i>Crew location</span><span>Colour = air temperature of the area</span></div>
+        <p class="explain">From helmet air sensors along the route. One reading per area.</p></div>
+      <div class="mapcol"><div class="maptitle"><b>Body temperature</b><span>Skin temperature per worker</span></div>
+        ${hwMap({ id: "EB", chainage: false, body: hwZone() + sims + livePin(), label: "Each worker's skin temperature on the highway" },
+          `<div class="hw-badge">${ICON_PERSON(hot ? "#B91C1C" : "#16181D")}<div><b class="${hot ? "r" : ""}">${hot} of ${total}</b><span>workers above 37.5°C</span></div></div>
+           <div class="hw-ctrls"><span>+</span><span>−</span></div>`)}
+        ${BODY_KEY}
+        <p class="explain">Each pin is one worker's own helmet reading.</p></div>
+    </div>
+    <div class="callout">${ic(P.warn, 22)} The area map says the whole stretch is hot. The body map shows only ${hot} of ${total} workers are actually overheating, so EHS knows exactly who to pull off work.</div>
+  </div>`;
+}
+function ehsZonesPage(A) {
+  const za = S.alerts.filter(a => a.type === "zone");
+  const live = za.find(a => a.status !== "resolved");
+  const inside = ZONE.auth.length + 3 + (S.inZone ? 1 : 0);    // 2 on PTW-0421 + 3 on the lifting permit
+  const entries = za.map(a => ({ t: a.t, id: "W-023 · Ahmad Razak", z: ZONE.ptw, live: true,
+      res: a.status === "resolved" ? "Unauthorised · left zone" : a.status === "ack" ? "Unauthorised · supervisor responding" : "Unauthorised · alarm on" }))
+    .concat([
+      { t: EHS_T0 - 22 * 60e3, id: "W-121", z: ZONE.ptw, res: "On permit · allowed" },
+      ...S.permitEntries.map(t => ({ t, id: "W-023 · Ahmad Razak", z: ZONE.ptw, live: true, res: "On permit · allowed" })),
+      { t: EHS_T0 - 41 * 60e3, id: "W-077", z: "PTW-0398", res: "Unauthorised · left in 0:48" },
+      { t: EHS_T0 - 64 * 60e3, id: "W-115", z: ZONE.ptw, res: "On permit · allowed" },
+      { t: EHS_T0 - 66 * 60e3, id: "W-112", z: ZONE.ptw, res: "On permit · allowed" },
+      { t: EHS_T0 - 90 * 60e3, id: "W-140", z: "PTW-0398", res: "On permit · allowed" }
+    ]).sort((a, b) => b.t - a.t);
+  const resCls = r => r.startsWith("On permit") ? "ok" : r.includes("left") ? "warm" : "alert";
+  return `
+    ${S.inZone ? `<div class="note esc">Unauthorised entry · Ahmad Razak (W-023) is inside the ${ZONE.ptw} zone without a permit. His clip is beeping and flashing red, and supervisor Faizal has been alerted${live && live.status === "ack" ? " and is on his way" : ""}.</div>` : ""}
+    <div class="kpis four">
+      <div class="kpi"><span>Active high-risk permits</span><b>2</b><small>Energisation · Lifting</small></div>
+      <div class="kpi"><span>Workers tagged on permits</span><b>${7 + (S.ahmadOnPermit ? 1 : 0)}</b><small>Tagged to their helmet clips</small></div>
+      <div class="kpi"><span>Inside high-risk zones now</span><b>${inside}</b><small>Simulated location</small></div>
+      <div class="kpi ${S.inZone ? "hot" : ""}"><span>Unauthorised now</span><b>${S.inZone ? 1 : 0}</b><small>${S.inZone ? "Alarm active" : "All clear"}</small></div>
+    </div>
+    <div class="rowg">
+      <div class="pnl"><div class="pnl-h"><h3>${ic(P.map, 18)} Zone map <small>${ZONE.place}</small></h3></div>
+        ${hwMap({ id: "Z", body: hwZone() + CREW.map(c => hwDot(c.hx, c.hy, "#6B7280", c.id)).join("") + livePin(), label: "High-risk zone with authorised and unauthorised workers" },
+          `<div class="hw-badge">${ic(P.ban, 24, S.inZone ? "#B91C1C" : "#16181D")}<div><b class="${S.inZone ? "r" : ""}">${S.inZone ? 1 : 0} unauthorised</b><span>inside ${ZONE.ptw} zone</span></div></div><div class="hw-ctrls"><span>+</span><span>−</span></div>`)}
+        ${ZONE_KEY}
+        <p class="explain">A zone switches on when its permit is approved. Workers named on the permit are tagged as allowed. Anyone else who walks in sets off their own clip alarm, and the area supervisor and EHS are alerted at the same moment.</p>
+      </div>
+      <div class="pnl"><div class="pnl-h"><h3>${ic(P.list, 18)} Active permits</h3></div>
+        <div class="bullet"><b>${ZONE.ptw} · ${ZONE.work}</b>${ZONE.place} · until ${ZONE.until}<br>On permit: ${permitList().join(", ")}<br>Inside now: ${ZONE.auth.length} on permit ${S.inZone ? pill("Alert") + " + 1 unauthorised" : ""}
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">
+            <button type="button" class="act ${S.ahmadOnPermit ? "light" : ""}" data-act="permit">${S.ahmadOnPermit ? "Remove W-023 from permit" : "Add W-023 Ahmad to permit"}</button>
+            <small style="color:var(--muted)">${S.permitChange ? (S.permitChange.add ? "W-023 added" : "W-023 removed") + " by EHS at " + clock(S.permitChange.t) + " · logged" : "Only EHS or the permit issuer can edit"}</small>
+          </div></div>
+        <div class="bullet"><b>PTW-0398 · Lifting (mobile crane)</b>Casting yard · until 16:00<br>On permit: W-140, W-141, W-152, W-160<br>Inside now: 3 on permit</div>
+        <div class="warnbox">The clip does not replace PTW, barriers or signage. It is the extra layer that still works when someone walks past all of them.</div>
+      </div>
+    </div>
+    <div class="pnl"><div class="pnl-h"><h3>${ic(P.bell, 18)} Zone entries today</h3></div>
+      <div class="tblwrap"><table class="tbl"><thead><tr><th>Time</th><th>Worker</th><th>Zone</th><th>Result</th></tr></thead><tbody>
+      ${entries.map(e => `<tr class="${e.live ? "liverow" : ""}"><td class="mono">${clock(e.t)}</td><td>${e.id} ${e.live ? liveTag : ""}</td><td class="mono">${e.z}</td><td><span class="st ${resCls(e.res)}">${e.res}</span></td></tr>`).join("")}
+      </tbody></table></div></div>`;
+}
+function ehsWorkersPage(W) {
+  const list = filterWorkers(W, "all");
+  return `<div class="pnl"><div class="pnl-h"><h3>${ic(P.users, 18)} Registered workers <small>${list.length} of ${EHS_TOTAL} shown</small></h3>${searchBox("all", "Search name, ID, zone or subcon")}</div>
+    ${workerTable(list, EHS_TOTAL)}</div>`;
+}
+function ehsAlertsPage(A) {
+  return `<div class="pnl"><div class="pnl-h"><h3>${ic(P.warn, 18)} Incident and alert queue</h3><button type="button" class="act" data-csv="alerts">Export alerts CSV</button></div>
+    <p class="explain">Live alerts from Ahmad's helmet appear at the top. If a supervisor doesn't acknowledge within 2 minutes, the alert escalates here. Other alerts are simulated.</p>
+    ${alertTable(A)}</div>`;
+}
+function ehsDevicesPage(W) {
+  return `<div class="pnl"><div class="pnl-h"><h3>${ic(P.helmet, 18)} Device management <small>${EHS_TOTAL} helmet clips</small></h3></div>
+    <p class="explain">SHC-023 is the real prototype helmet. The other 199 clips are simulated. Last location stays on record when a helmet goes offline or is taken off.</p>
+    <div class="tblwrap"><table class="tbl"><thead><tr><th>Helmet</th><th>Status</th><th>Assigned worker</th><th>Battery</th><th>Last check-in</th><th>Last location</th></tr></thead><tbody>
+    ${W.map(w => `<tr class="${w.live ? "liverow" : ""}"><td class="mono">${w.helmet} ${w.live ? liveTag : ""}</td><td>${pill(w.cond === "Offline" ? "Offline" : "Online")}</td><td>${w.id} · ${w.name}</td>
+      <td class="mono">${w.cond === "Offline" ? "—" : w.battery + "%"}</td><td>${w.cond === "Offline" ? "—" : ago(w.mins)}</td>
+      <td>${w.live ? w.lastLoc : w.helmet === OFF_W.helmet && S.helmetOff && S.helmetOff.status !== "resolved" ? OFF_W.zone + " · helmet off · " + clock(S.helmetOff.t) : w.zone + (w.cond === "Offline" ? " · last seen " + (w.mins + 20) + " min ago" : "")}</td></tr>`).join("")}</tbody></table></div></div>`;
+}
+function lineChart(data) {
+  const W = 760, H = 230, x0 = 40, y0 = 14, w = 670, h = 170;
+  const X = i => x0 + i * w / (data.length - 1);
+  const Yt = v => y0 + h - (v - 24) / 16 * h, Yr = v => y0 + h - (v - 50) / 40 * h;
+  let g = "";
+  for (let i = 0; i < 5; i++) {
+    const y = y0 + i * h / 4;
+    g += `<line x1="${x0}" y1="${y}" x2="${x0 + w}" y2="${y}" stroke="#E4E2DC"/><text x="6" y="${y + 4}" fill="#4B5160" font-size="11">${40 - i * 4}°</text><text x="${x0 + w + 8}" y="${y + 4}" fill="#4B5160" font-size="11">${90 - i * 10}%</text>`;
+  }
+  const ticks = data.map((v, i) => `<text x="${X(i)}" y="${y0 + h + 20}" text-anchor="middle" fill="#4B5160" font-size="11">${v.k}</text>`).join("");
+  const pt = data.map((v, i) => `<circle cx="${X(i)}" cy="${Yt(v.t)}" r="3.5" fill="#B91C1C"/>`).join("");
+  const path = f => data.map((v, i) => (i ? "L" : "M") + X(i).toFixed(1) + "," + f(v).toFixed(1)).join(" ");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Simulated temperature and humidity trend">${g}${ticks}
+    <path d="${path(v => Yt(v.t))}" stroke="#B91C1C" stroke-width="3" fill="none" stroke-linejoin="round"/>
+    <path d="${path(v => Yr(v.rh))}" stroke="#1D4ED8" stroke-width="2.5" fill="none" stroke-dasharray="6 4"/>${pt}</svg>`;
+}
+function zoneChart() {
+  const base = 196, maxh = 150;
+  const bars = CLIMATE_ZONES.map((z, i) => {
+    const b = (z.t - 26) / 14 * maxh, x = 30 + i * 74, c = z.t >= 35 ? COLORS.alert : z.t >= 34 ? "#C2410C" : z.t >= 33 ? COLORS.warm : COLORS.ok;
+    return `<rect x="${x}" y="${base - b}" width="44" height="${b}" rx="6" fill="${c}"/><text x="${x + 22}" y="${base - b - 8}" font-size="12" text-anchor="middle" font-weight="700" fill="#16181D">${z.t.toFixed(1)}°</text>
+      <text x="${x + 22}" y="${base + 18}" font-size="10" text-anchor="middle" fill="#4B5160">${z.short}</text>`;
+  }).join("");
+  return `<svg viewBox="0 0 470 230" role="img" aria-label="Simulated ambient temperature by zone"><line x1="20" y1="${base}" x2="460" y2="${base}" stroke="#DAD8D1"/>${bars}</svg>`;
+}
+function ehsClimatePage() {
+  const data = S.climPeriod === "week" ? CLIMATE_WEEK : CLIMATE_SHIFT;
+  const high = CLIMATE_ZONES.filter(z => z.t >= 35).length;
+  return `
+    <div class="warnbox"><b>Demonstration data, not live.</b> Figures and worker records are simulated. Helmet air temperature and humidity are <b>not WBGT</b>, and skin-surface readings <b>cannot diagnose heatstroke</b>. These observations do not on their own meet NSRF / IFRS S2 disclosure requirements.</div>
+    <div class="kpis four">
+      <div class="kpi"><span>Average air temperature</span><b>32.8°C</b><small>Reporting-zone average</small></div>
+      <div class="kpi"><span>Average humidity</span><b>68%</b><small>Helmet sensor reading</small></div>
+      <div class="kpi warm"><span>High-temperature observations</span><b>18</b><small>Above demo threshold · not illness cases</small></div>
+      <div class="kpi"><span>Reporting coverage</span><b>189 / ${EHS_TOTAL}</b><small>Recent helmet reports · 94.5%</small></div>
+    </div>
+    <div class="pnl chart" style="padding-bottom:12px"><div class="pnl-h"><h3>Air temperature and humidity</h3>
+          <div class="seg2" role="group" aria-label="Period"><button type="button" data-period="shift" aria-pressed="${S.climPeriod === "shift"}">Current shift</button><button type="button" data-period="week" aria-pressed="${S.climPeriod === "week"}">Past 7 days</button></div></div>
+        ${lineChart(data)}
+        <div class="cleg"><span><i style="background:#B91C1C"></i>Air temperature (°C)</span><span><i style="background:#1D4ED8"></i>Relative humidity (%)</span></div></div>
+    <div class="rowg">
+      <div class="pnl chart"><div class="pnl-h"><h3>Temperature by zone</h3></div>${zoneChart()}
+        <p class="explain">Helmet sensors give point readings, not a calibrated site-wide heat survey.</p></div>
+      <div class="pnl"><div class="pnl-h"><h3>Heat-risk management</h3></div>
+        <div class="bullet"><b>1. Identify areas for review</b>Use repeated high readings to flag locations for assessment by competent site personnel.</div>
+        <div class="bullet"><b>2. Record actions taken</b>Link findings to WBGT surveys, work and rest controls, and hydration measures.</div>
+        <div class="bullet"><b>3. Keep traceable evidence</b>Retain timestamps, locations, device status and approvals for internal climate risk reviews.</div></div>
+    </div>
+      <div class="pnl"><div class="pnl-h"><h3>Zone monitoring summary</h3><button type="button" class="act light" data-csv="climate">Export climate CSV</button></div>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Zone</th><th>Air °C</th><th>Humidity</th><th>Reporting</th><th>Observation</th></tr></thead><tbody>
+        ${CLIMATE_ZONES.map(z => `<tr><td>${z.zone}</td><td class="mono"><b>${z.t.toFixed(1)}</b></td><td class="mono">${z.rh}%</td><td class="mono">${z.online}</td><td>${z.t >= 35 ? pill("Review recommended") : "Within demo range"}</td></tr>`).join("")}
+        </tbody></table></div><p class="explain">${high} zone flagged for review by competent site personnel.</p></div>
+    <p class="explain">After validation and governance review, these trends and action records could support climate-related physical risk assessment under NSRF / IFRS S2. This dashboard does not produce compliant disclosures or measure individual heat stress.</p>`;
+}
+function ehsReportsPage() {
+  const card = (t, d, k) => `<div class="rcard"><div><b>${t}</b><p>${d}</p></div><button type="button" class="act" data-csv="${k}">Download CSV</button></div>`;
+  return `<div class="pnl"><div class="pnl-h"><h3>Reports and export</h3></div>
+    <p class="explain">Download the demo data to show the kinds of reports a pilot could produce.</p>
+    ${card("Worker register", `${EHS_TOTAL} workers with zones, helmet IDs and latest readings.`, "workers")}
+    ${card("Incident log", "All alerts with times, severity and status, including live helmet events.", "alerts")}
+    ${card("Climate and heat", "Zone temperature and humidity observations.", "climate")}</div>`;
+}
+function ehsSettingsPage() {
+  return `<div class="pnl"><div class="pnl-h"><h3>Prototype settings</h3></div>
+    <div class="rcard"><div><b>Presentation mode</b><p>1 live prototype helmet (SHC-023) plus ${EHS_TOTAL - 1} simulated workers. Simulated data stays on screen whether or not the helmet is connected.</p></div></div>
+    <div class="rcard"><div><b>Escalation rule</b><p>Alerts not acknowledged by the supervisor within 2 minutes escalate to the EHS control centre.</p></div></div>
+    <div class="rcard"><div><b>Before real deployment</b><p>Secure backend, worker consent, device registration, connection-loss handling, audit logs, confirmed alert delivery and helmet compatibility testing.</p></div></div></div>`;
+}
+
+const EHS_PAGES = [
+  ["dashboard", "Dashboard", '<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/>'],
+  ["workers", "Workers", P.users],
+  ["alerts", "Alerts", P.bell],
+  ["zones", "High-risk zones", P.ban],
+  ["devices", "Devices", P.helmet],
+  ["climate", "Climate and heat", P.temp],
+  ["reports", "Reports", P.list],
+  ["settings", "Settings", '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>']
+];
+const EHS_TITLES = { dashboard: ["Site monitoring centre", "Management dashboard · whole site"], workers: ["Workers", "Everyone registered on this site"],
+  alerts: ["Alerts", "Incident and alert queue"], zones: ["High-risk zones", "Permit-to-work zones · who is allowed, who is inside"], devices: ["Devices", "Helmet clips and battery"], climate: ["Climate and heat", "Air temperature, humidity and heat-risk evidence"],
+  reports: ["Reports", "Export demo data"], settings: ["Settings", "Prototype configuration"] };
+
+function ehs() {
+  const W = ehsWorkers(), A = ehsAlerts();
+  const open = A.filter(isOpen).length;
+  const pages = { dashboard: () => ehsDashboard(W, A), workers: () => ehsWorkersPage(W), alerts: () => ehsAlertsPage(A), zones: () => ehsZonesPage(A), devices: () => ehsDevicesPage(W),
+    climate: ehsClimatePage, reports: ehsReportsPage, settings: ehsSettingsPage };
+  const [title, sub] = EHS_TITLES[S.ehsPage];
+  return `<div class="ehs">
+    <aside class="side">
+      <div class="brand"><div class="logo">${ic(P.shield, 24, "#F59E0B")}</div><div><span class="main">EHS control centre</span><span class="sub">Gamuda · Highway Package</span></div></div>
+      <nav aria-label="EHS pages">${EHS_PAGES.map(([k, label, p]) => `<button type="button" data-ehs="${k}" ${S.ehsPage === k ? 'aria-current="page"' : ""}>${ic(p, 20)}${label}${k === "alerts" && open ? `<span class="nb">${open}</span>` : ""}${k === "zones" && S.inZone ? `<span class="nb">1</span>` : ""}</button>`).join("")}</nav>
+      <div class="side-foot">${EHS_TOTAL} workers · 1 live helmet · ${EHS_TOTAL - 1} simulated</div>
+    </aside>
+    <main class="ehs-main">
+      <div class="ehs-head"><h1>${title}<small>${sub}</small></h1>
+        <div class="chips"><span class="mchip">${ic(P.bell, 14)} ${clock(Date.now())}</span><span class="mchip">${ic(P.temp, 14)} ${S.conn === "on" ? S.air.toFixed(1) : "32.8"}°C</span><span class="mchip sim">Simulated data · 1 live helmet</span></div></div>
+      ${pages[S.ehsPage]()}
+    </main></div>`;
+}
+
+/* ---------- CSV export ---------- */
+function downloadCSV(type) {
+  const W = ehsWorkers(), A = ehsAlerts();
+  const rows = type === "workers"
+    ? [["Worker ID", "Name", "Helmet ID", "Subcon", "Zone", "Condition", "Skin temp C", "Heart rate bpm", "Ambient temp C"], ...W.map(w => [w.id, w.name, w.helmet, w.co, w.zone, w.cond, w.skin ?? "", w.hr ?? "", w.ambient ?? ""])]
+    : type === "alerts"
+    ? [["Time", "Alert", "Helmet ID", "Location", "Severity", "Status", "Source"], ...A.map(a => [clock(a.t), a.type, a.helmet, a.zone, a.sev, a.status, a.live ? "Live helmet" : "Simulated"])]
+    : [["Zone", "Air temperature C", "Relative humidity %", "Reporting helmets", "Dataset", "Method"], ...CLIMATE_ZONES.map(z => [z.zone, z.t, z.rh, z.online, "Simulated demo", "Helmet air sensor, not WBGT"])];
+  const csv = rows.map(r => r.map(v => '"' + String(v).replaceAll('"', '""') + '"').join(",")).join("\r\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a"); a.href = url; a.download = "smart-helmet-" + type + "-DEMO.csv"; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+
+/* ======================================================================
+   ASSET POOL — HQ QSHE owns the clips; sites only see their own project
+   (all numbers simulated)
+   ====================================================================== */
+const ASSET_TODOS = [
+  { id:"t1", tag:"TRANSFER", tone:"blue", title:"Move 18 idle clips: Rasau WTP → GC7A3", why:"Idle 21 days at Rasau. GC7A3 needs 15 more next week. Courier booked once approved.", cta:"Approve transfer", done:"Approved · storekeepers told" },
+  { id:"t2", tag:"REPAIR", tone:"amber", title:"Battery refresh, 6 clips · ≈ RM120", why:"Battery health below 80%. Spares already swapped in, so no worker is without a clip.", cta:"Approve repair", done:"Approved · vendor booked" },
+  { id:"t3", tag:"MISSING", tone:"red", title:"2 clips not seen for 3 days", why:"Last seen at Rasau WTP store, Subcon B. Storekeeper asked to check. Charge-back after day 7.", cta:"Acknowledge", done:"Acknowledged · charge-back day 7" }
+];
+const ASSET_PROJECTS = [
+  { name:"SGW1A2A", type:"Data centre · Wi-Fi", assigned:50, use:49, idle:1, util:98, rate:1.95 },
+  { name:"Rasau WTP", type:"Infra · gateways", assigned:52, use:30, idle:18, util:58, rate:2.35 },
+  { name:"GC7A3", type:"High-rise · beacons", assigned:70, use:66, idle:4, util:94, rate:3.05 },
+  { name:"HQ store", type:"24 ready · 6 under repair", assigned:28, use:0, idle:0, util:null, rate:null }
+];
+const ASSET_CLIPS = [
+  ["SHC-118","Rasau WTP","Idle 21 days","warm","8 mo","95%",1,"Good","ok","In transfer list → GC7A3"],
+  ["SHC-147","GC7A3 · L6","In use","ok","26 mo","78%",12,"Check","warm","Battery refresh queued, spare swapped"],
+  ["SHC-066","Vendor","Under repair","off","19 mo","71%",27,"Repair","alert","Drop limit passed · back 6 Nov"],
+  ["SHC-189","Rasau WTP store","Not seen 3 days","alert","11 mo","88%",4,"Missing","alert","Storekeeper told · charge-back day 7"],
+  ["SHC-058","GC7A3 · L3","In use","ok","31 mo","81%",9,"Ageing","blue","End-of-life review, Mar 2027"],
+  ["SHC-023","Highway Package","In use · live","ok","2 mo","97%",0,"Good","ok","Prototype helmet · no action"]
+];
+const ASSET_RULES = [
+  ["Clip checked out or returned","Assigned project updates; the project is charged from that day","From storekeeper scan"],
+  ["Idle more than 14 days","Matched to a project that needs clips; transfer sent to HQ to approve","Runs daily 06:00"],
+  ["Battery health below 80%","Spare swapped on site; vendor refresh queued for HQ","Checked nightly while charging"],
+  ["Not seen for 48 hours","Storekeeper alerted with last location; subcon charge-back after 7 days","2 open cases"],
+  ["Drops logged above 20","Pulled for inspection; spare issued the same day","1 clip at vendor"],
+  ["1st of every month","Usage and charge report emailed to Finance and project managers","Next: 1 Dec, 08:00"]
+];
+const toneCls = { blue:"blue", amber:"amber", red:"red" };
+const utilColor = u => u === null ? "var(--soft)" : u < 70 ? "var(--red)" : u < 85 ? "var(--amber)" : "var(--green)";
+
+function assetHQ() {
+  S.assetDone = S.assetDone || {};
+  const pending = ASSET_TODOS.filter(t => !S.assetDone[t.id]).length;
+  return `
+    <div class="access"><span class="tag amber">ACCESS</span><span><b>Only HQ QSHE sees this page.</b> Site EHS teams see <b>My clips</b> for their own project only. They can request or return clips, but cannot approve, transfer or see other projects.</span></div>
+    <div class="todo"><div class="todo-h"><b>HQ to-do · ${pending} need your decision</b><span>Everything else this month was handled automatically</span></div>
+      <div class="todos">${ASSET_TODOS.map(t => `<div class="td"><span class="tag ${toneCls[t.tone]} t">${t.tag}</span><b>${t.title}</b><p>${t.why}</p>
+        ${S.assetDone[t.id] ? `<span class="ok">${ic(P.check, 16, "#fff")}&nbsp;${t.done}</span>` : `<button type="button" data-aapprove="${t.id}">${t.cta}</button>`}</div>`).join("")}</div></div>
+    <div class="kpis">
+      <div class="kpi"><span>Clips in pool</span><b>200</b><small>Owned by HQ QSHE</small></div>
+      <div class="kpi"><span>In use today</span><b style="color:var(--green)">145</b><small>Worn on shift</small></div>
+      <div class="kpi warm"><span>Idle on site</span><b>23</b><small>18 flagged for transfer</small></div>
+      <div class="kpi"><span>In HQ store</span><b>30</b><small>24 ready · 6 repair</small></div>
+      <div class="kpi"><span>Utilisation · 30 days</span><b style="color:var(--blue)">${S.assetDone.t1 ? "82%" : "73%"}</b><small>Target 80%</small></div>
+    </div>
+    <div class="rowg" style="grid-template-columns:minmax(0,1fr)">
+      <div class="pnl"><div class="pnl-h"><h3>${ic(P.list, 18)} Project allocation <small>October · auto-calculated</small></h3></div>
+        <div class="tblwrap"><table class="tbl"><thead><tr><th>Project</th><th>Assigned</th><th>In use</th><th>Idle</th><th>Utilisation</th><th>Auto charge</th></tr></thead><tbody>
+        ${ASSET_PROJECTS.map(p => `<tr><td><b>${p.name}</b><br><small style="color:var(--muted)">${p.type}</small></td><td class="mono">${p.assigned}</td><td class="mono">${p.use || "—"}</td>
+          <td class="mono" style="${p.idle >= 10 ? "color:var(--red);font-weight:700" : ""}">${p.idle || "—"}</td>
+          <td class="mono"><span class="ubar"><i style="width:${p.util || 0}%;background:${utilColor(p.util)}"></i></span>${p.util === null ? "—" : p.util + "%"}</td>
+          <td class="mono"><b>${p.rate ? "RM" + (p.assigned * p.rate).toFixed(2) : "HQ"}</b>${p.rate ? `<br><small style="color:var(--muted)">× RM${p.rate.toFixed(2)}</small>` : ""}</td></tr>`).join("")}
+        </tbody></table></div>
+        <p class="explain">Charges come from storekeeper check-outs. Report goes to Finance on the 1st, no manual input.</p></div>
+      <div class="pnl"><div class="pnl-h"><h3>${ic(P.heart, 18)} Lifespan <small>36-month clips</small></h3></div>
+        <div class="ages">
+          <div class="age"><div class="r"><span>0–12 months</span><span>120 clips</span></div><div class="b"><i style="width:60%;background:var(--green)"></i></div><small>No action</small></div>
+          <div class="age"><div class="r"><span>12–24 months</span><span>54 clips</span></div><div class="b"><i style="width:27%;background:var(--amber)"></i></div><small>Battery test at 24 months, auto-scheduled</small></div>
+          <div class="age"><div class="r"><span>24–36 months</span><span>26 clips</span></div><div class="b"><i style="width:13%;background:var(--red)"></i></div><small>8 reach 36 months by Mar 2027 · on next quarter's list</small></div>
+        </div>
+        <div class="bullet">At 36 months: battery test → refresh (≈ RM20) or recycle as e-waste. HQ gets one list per quarter.</div></div>
+    </div>
+    <div class="pnl"><div class="pnl-h"><h3>${ic(P.helmet, 18)} Clip condition <small>Clips with an action · 194 of 200 healthy</small></h3></div>
+      <div class="tblwrap"><table class="tbl"><thead><tr><th>Clip</th><th>Location</th><th>Status</th><th>Age</th><th>Battery health</th><th>Drops</th><th>Health</th><th>Automatic action</th></tr></thead><tbody>
+      ${ASSET_CLIPS.map(c => `<tr class="${c[0] === "SHC-023" ? "liverow" : ""}"><td class="mono"><b>${c[0]}</b></td><td>${c[1]}</td><td><span class="st ${c[3]}">${c[2]}</span></td><td class="mono">${c[4]}</td><td class="mono">${c[5]}</td><td class="mono">${c[6]}</td><td><span class="st ${c[8]}">${c[7]}</span></td><td style="white-space:normal;min-width:170px">${c[9]}</td></tr>`).join("")}
+      </tbody></table></div></div>
+    <div class="pnl"><div class="pnl-h"><h3>${ic(P.check, 18)} Automatic rules <small>What the system does so HQ doesn't have to</small></h3></div>
+      <div class="rules">${ASSET_RULES.map(r => `<div class="rule"><div class="h"><b>${r[0]}</b><span class="st ok">ON</span></div><span>→ ${r[1]}</span><small>${r[2]}</small></div>`).join("")}</div></div>
+    <div class="workload"><b>HQ workload: about 15 minutes a month, approving the flagged items above.</b><span>The dashboard is the asset register · sites check clips in and out at the store</span></div>`;
+}
+
+function assetSite() {
+  S.siteReq = S.siteReq || {};
+  const reqs = [["Return 18 idle clips", "HQ QSHE", S.assetDone && S.assetDone.t1 ? "Approved by HQ" : "Waiting for HQ", S.assetDone && S.assetDone.t1 ? "ok" : "warm", "Courier pickup Tue 4 Nov · charge drops to 34 clips"]];
+  if (S.siteReq.more) reqs.push(["Need 5 more clips", "You · Site EHS", "Waiting for HQ", "warm", "HQ replies within 2 working days"]);
+  if (S.siteReq.ret) reqs.push(["Return 4 more spare clips", "You · Site EHS", "Waiting for HQ", "warm", "Added to Tuesday pickup if approved"]);
+  return `
+    <div class="access"><span class="tag blue">VIEW ONLY</span><span>You see <b>Rasau WTP's clips only</b>. To get more clips or return spare ones, send a request. <b>HQ QSHE approves</b> and arranges delivery.</span></div>
+    <div class="kpis">
+      <div class="kpi"><span>On loan to this site</span><b>52</b><small>From HQ pool</small></div>
+      <div class="kpi"><span>In use today</span><b style="color:var(--green)">30</b><small>Worn on shift</small></div>
+      <div class="kpi warm"><span>Idle in site store</span><b>18</b><small>HQ asked to return</small></div>
+      <div class="kpi hot"><span>Not seen</span><b>2</b><small>Please check store</small></div>
+      <div class="kpi"><span>This month · project cost</span><b>RM122</b><small>52 clips × RM2.35</small></div>
+    </div>
+    <div class="pnl"><div class="pnl-h"><h3>${ic(P.list, 18)} Requests to HQ <small>The only actions available to site teams</small></h3></div>
+      <div class="btnrow"><button type="button" class="act" data-areq="more">${S.siteReq.more ? "Request sent ✓" : "Request more clips"}</button><button type="button" class="act light" data-areq="ret">${S.siteReq.ret ? "Return request sent ✓" : "Return spare clips"}</button></div>
+      <div class="tblwrap"><table class="tbl"><thead><tr><th>Request</th><th>Raised by</th><th>HQ decision</th><th>Next step</th></tr></thead><tbody>
+      ${reqs.map(r => `<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td><span class="st ${r[3]}">${r[2]}</span></td><td>${r[4]}</td></tr>`).join("")}
+      </tbody></table></div></div>
+    <div class="pnl"><div class="pnl-h"><h3>${ic(P.helmet, 18)} Clips needing site action <small>Storekeeper tasks only · repairs handled by HQ</small></h3></div>
+      <div class="tblwrap"><table class="tbl"><thead><tr><th>Clip</th><th>Status</th><th>Last location</th><th>What to do</th></tr></thead><tbody>
+        <tr><td class="mono"><b>SHC-189</b></td><td><span class="st alert">Not seen 3 days</span></td><td>Site store · Subcon B</td><td>Check store and Subcon B. Charge-back on day 7 if not found.</td></tr>
+        <tr><td class="mono"><b>SHC-194</b></td><td><span class="st alert">Not seen 3 days</span></td><td>Site store · Subcon B</td><td>Same as above</td></tr>
+        <tr><td class="mono"><b>SHC-118</b></td><td><span class="st warm">Idle 21 days</span></td><td>Site store</td><td>Pack for HQ pickup on Tuesday</td></tr>
+      </tbody></table></div></div>`;
+}
+
+function assetPool() {
+  const hq = (S.assetRole || "hq") === "hq";
+  return `<div class="ehs">
+    <aside class="side">
+      <div class="brand"><div class="logo">${ic(P.shield, 24, "#F59E0B")}</div><div><span class="main">${hq ? "Asset pool" : "My clips"}</span><span class="sub">${hq ? "HQ QSHE · all projects" : "Site EHS · Rasau WTP"}</span></div></div>
+      <nav aria-label="Sign in as">
+        <button type="button" data-arole="hq" ${hq ? 'aria-current="page"' : ""}>${ic(P.shield, 20)}HQ QSHE view<span class="lk">HQ</span></button>
+        <button type="button" data-arole="site" ${!hq ? 'aria-current="page"' : ""}>${ic(P.users, 20)}Site EHS view</button>
+      </nav>
+      <div class="role-note"><b>Demo switch.</b> In the real system the view depends on who signs in. Sites never see the HQ view.</div>
+      <div class="side-foot">200 clips in pool · 1 live helmet · 199 simulated</div>
+    </aside>
+    <main class="ehs-main">
+      <div class="ehs-head"><h1>${hq ? "Asset pool" : "My clips"}<small>${hq ? "Allocation, lifespan and condition · runs automatically, HQ only approves" : "Clips on loan to Rasau WTP from the HQ pool"}</small></h1>
+        <div class="chips"><span class="mchip who ${hq ? "" : "site"}">${hq ? "Signed in as HQ QSHE · Admin" : "Signed in as Site EHS · Rasau WTP"}</span><span class="mchip sim">Simulated data</span></div></div>
+      ${hq ? assetHQ() : assetSite()}
+    </main></div>`;
+}
+
+function renderRight(){
+  if (S.conn === "on") S.lastSeen = { t:Date.now(), where: S.inZone ? ZONE.ptw + " zone · " + ZONE.place : LIVE.zone };
+  const box = $("right");
+  const assetView = S.rightView === "asset";
+  const ehsView = S.rightView === "ehs" || assetView;
+  box.className = ehsView ? "desk" : "phone";
+  $("rightWho").innerHTML = assetView ? `Asset pool<small>Clip allocation, lifespan and condition</small>` : ehsView ? `EHS control centre<small>Monitoring and reporting · whole site</small>` : `Supervisor's view<small>Faizal · Subcon A (Structure)</small>`;
+  document.querySelectorAll("[data-view]").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === S.rightView));
+  // keep scroll position and search typing while the page refreshes
+  const keep = box.querySelector(".s-scroll, .ehs-main"); const top = keep ? keep.scrollTop : 0;
+  const ae = document.activeElement, typing = ae && box.contains(ae) && ae.dataset.search ? { k:ae.dataset.search, pos:ae.selectionStart } : null;
+  box.innerHTML = assetView ? assetPool() : ehsView ? ehs() : supervisor();
+  const sc = box.querySelector(".s-scroll, .ehs-main"); if (sc) sc.scrollTop = top;
+  if (typing) { const el = box.querySelector(`[data-search="${typing.k}"]`); if (el) { el.focus(); el.setSelectionRange(typing.pos, typing.pos); } }
+}
+
+function renderBar(){
+  const on = S.conn === "on";
+  $("liveChip").classList.toggle("on", on);
+  $("liveTxt").textContent = on ? (S.real ? "Real helmet connected · live" : "Simulated helmet") : S.conn === "busy" ? "Helmet connecting…" : "Helmet not connected";
+  $("btnSim").hidden = S.conn !== "off";
+  $("barHint").textContent = on ? "Trigger an event:" : "Connect the helmet first:";
+}
+function flashHint(){ const h = $("barHint"); h.style.color = "var(--red)"; h.style.fontWeight = "700"; setTimeout(()=>{ h.style.color=""; h.style.fontWeight=""; }, 1200); }
+
+function renderAll(){ renderWorker(); renderRight(); renderBar(); fit(); }
+
+/* ======================================================================
+   CLICKS
+   ====================================================================== */
+document.querySelectorAll("[data-trigger]").forEach(b => b.onclick = () => helmetEvent(b.dataset.trigger));
+$("btnReset").onclick = () => {     // clears alerts but keeps the helmet connection and the EHS page
+  stopCountdown(); helmetSend("RESOLVE_ALL"); helmetSend("ZONE_OFF");
+  const keep = { conn:S.conn === "busy" ? "off" : S.conn, rightView:S.rightView, ehsPage:S.ehsPage, assetRole:S.assetRole,
+    real:S.real, realHr:S.realHr, heatArmed:true, hrHighSince:0, skin:S.real ? S.skin : 35.4, air:S.air, hum:S.hum, hr:S.realHr ? S.hr : 96 };
+  S = Object.assign(fresh(), keep);
+  showWorker(S.conn === "on" ? "home" : "pair"); renderAll();
+};
+$("btnSos").onclick = () => helmetEvent("sos");
+$("btnSim").onclick = simulateHelmet;
+$("btnOff").onclick = () => helmetOffEvent();
+$("btnSendHelp").onclick = () => confirmFall();
+$("btnRest").onclick = () => workerResting();
+$("btnTell").onclick = () => workerAsksHelp();
+$("btnLeaveZone").onclick = () => workerLeftZone();
+document.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => {
+  lang = b.dataset.lang; try { localStorage.setItem("helmetLang", lang); } catch(e) {}
+  renderWorker();
+});
+document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { S.rightView = b.dataset.view; S.sheet = null; renderRight(); fit(); });
+$("right").addEventListener("click", e => {
+  const tab = e.target.closest("[data-tab]");
+  if (tab) { S.supTab = tab.dataset.tab; S.mapFocus = false; renderRight(); return; }
+  const pg = e.target.closest("[data-ehs]");
+  if (pg) { S.ehsPage = pg.dataset.ehs; renderRight(); const m = $("right").querySelector(".ehs-main"); if (m) m.scrollTop = 0; return; }
+  const per = e.target.closest("[data-period]");
+  if (per) { S.climPeriod = per.dataset.period; renderRight(); return; }
+  const csv = e.target.closest("[data-csv]");
+  if (csv) { downloadCSV(csv.dataset.csv); return; }
+  const ar = e.target.closest("[data-arole]");
+  if (ar) { S.assetRole = ar.dataset.arole; renderRight(); const m = $("right").querySelector(".ehs-main"); if (m) m.scrollTop = 0; return; }
+  const ap = e.target.closest("[data-aapprove]");
+  if (ap) { S.assetDone = Object.assign({}, S.assetDone, { [ap.dataset.aapprove]: true }); renderRight(); return; }
+  const aq = e.target.closest("[data-areq]");
+  if (aq) { S.siteReq = Object.assign({}, S.siteReq, { [aq.dataset.areq]: true }); renderRight(); return; }
+  const el = e.target.closest("[data-act]"); if (!el) return;
+  const act = el.dataset.act, id = Number(el.dataset.id);
+  if (act === "close" && (e.target === el || el.tagName === "BUTTON")) { S.sheet = null; renderRight(); }
+  if (act === "info") { S.sheet = "info"; renderRight(); }
+  if (act === "showmap") { S.sheet = null; S.supTab = "map"; S.mapFocus = true; renderRight(); const sc = $("right").querySelector(".s-scroll"); if (sc) sc.scrollTop = 0; }
+  if (act === "backalert") { S.supTab = "alerts"; S.mapFocus = false; renderRight(); }
+  if (act === "ack") { acknowledge(id); toast("Ahmad has been told you're coming"); }
+  if (act === "resolve") { resolve(id); toast("Alert resolved and logged for EHS"); }
+  if (act === "permit") { togglePermit(); }
+  if (act === "offack") { helmetOffAck(); toast("Crew asked to check Bikash's helmet"); }
+  if (act === "offresolve") { helmetOffResolve(); toast("Bikash's helmet is back on"); }
+});
+$("right").addEventListener("input", e => {
+  if (e.target.dataset.search) { S.search[e.target.dataset.search] = e.target.value; renderRight(); }
+});
+$("callLink").href = $("callLink2").href = "tel:" + CONFIG.supervisorPhone;
+
+/* ======================================================================
+   LIVE READINGS + TIMERS
+   ====================================================================== */
+const drift = (v, step, min, max) => Math.min(max, Math.max(min, v + (Math.random()*2-1)*step));
+setInterval(() => {
+  if (S.conn !== "on") return;
+  const heatOn = S.alerts.some(a => a.type === "heat" && a.status !== "resolved");
+  if (!S.real) {                 // the real helmet sends its own readings
+    S.air = drift(S.air, 0.3, 30, 35);
+    S.hum = drift(S.hum, 1.5, 58, 78);
+    if (!heatOn) S.skin = drift(S.skin, 0.2, 34.2, 36.8);
+  }
+  if (!S.realHr) S.hr = heatOn ? drift(S.hr, 2, 144, 152) : S.inZone ? drift(S.hr, 3, 102, 116) : drift(S.hr, 3, 84, 106);
+  renderWorker();
+  if (S.supTab === "workers" || S.rightView === "ehs") renderRight();
+}, CONFIG.updateEveryMs);
+setInterval(() => { if (activeAlerts().some(a => a.status === "new" || a.type === "zone") && S.rightView === "sup") renderRight(); }, 1000);
+setInterval(() => {   // zone timer on the worker's phone
+  const z = S.alerts.find(a => a.type === "zone" && a.status !== "resolved");
+  if (z && S.workerScreen === "zone") $("zoneTimer").textContent = num(mmss(since(z.t)));
+}, 1000);
+setInterval(() => { if (S.rightView === "ehs" && S.conn !== "on") renderRight(); }, 5000);
+
+/* Scale the whole stage to fit the projector screen */
+function fit(){
+  const st = $("stage"), bar = document.querySelector(".bar");
+  st.style.zoom = 1;
+  const z = Math.min(1.35, innerWidth / st.scrollWidth, (innerHeight - bar.offsetHeight) / st.scrollHeight);
+  st.style.zoom = z;
+}
+addEventListener("resize", fit);
+
+renderAll();
+</script>
+</body>
+</html>
